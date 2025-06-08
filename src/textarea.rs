@@ -186,6 +186,12 @@ impl<'a> TextArea<'a> {
         }
     }
 
+    pub fn set_text(&mut self, text: autosurgeon::Text) {
+        let text_len = text.as_str().chars().count();
+        self.text = text;
+        self.cursor_v2 = cmp::min(self.cursor_v2, text_len);
+    }
+
     pub fn text(&self) -> &autosurgeon::Text {
         &self.text
     }
