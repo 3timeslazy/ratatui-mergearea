@@ -1,12 +1,17 @@
-tui-textarea
+ratatui-mergearea (WIP)
 ============
-[![crate][crates-io-badge]][crate]
-[![docs][doc-badge]][doc]
-[![CI][ci-badge]][ci]
-[![coverage][codecov-badge]][codecov]
 
-[tui-textarea][crate] is a simple yet powerful text editor widget like `<textarea>` in HTML for [ratatui][] and [tui-rs][].
-Multi-line text editor can be easily put as part of your TUI application.
+**ratatui-mergearea** is a simple [Automerge](https://automerge.org/) text editor widget for ratatui based on [tui-textarea](https://github.com/rhysd/tui-textarea)
+
+### [`sync`](./examples/sync.rs)
+
+```sh
+cargo run --example sync
+```
+
+https://github.com/user-attachments/assets/b4113b11-7b7d-4ea5-ace6-c872da8887fc
+
+### Everything below is a copy-paste from the original library
 
 **Features:**
 

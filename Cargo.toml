@@ -4,10 +4,7 @@ version = "0.7.0"
 edition = "2021"
 rust-version = "1.65"
 authors = ["vladimir <vladimir.fetisov@pm.me>"]
-description = """
-tui-textarea is a simple yet powerful text editor widget for ratatui and tui-rs. Multi-line
-text editor can be easily put as part of your TUI application.
-"""
+description = "Automerge text editor widget for ratatui based on tui-textarea"
 license = "MIT"
 homepage = "https://github.com/3timeslazy/ratatui-mergearea#readme"
 repository = "https://github.com/3timeslazy/ratatui-mergearea"

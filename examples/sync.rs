@@ -48,7 +48,7 @@ fn main() -> io::Result<()> {
 
     let mut doc1 = AutoCommit::new();
     let state1 = State {
-        text: autosurgeon::Text::with_value("Hello, World"),
+        text: autosurgeon::Text::with_value("The fox jumped."),
     };
     reconcile(&mut doc1, state1).unwrap();
 
