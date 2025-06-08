@@ -6,7 +6,7 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::widgets::{Block, Borders};
 use ratatui::Terminal;
 use std::io;
-use tui_textarea::{Input, Key, TextArea};
+use ratatui_mergearea::{CursorMoveV2, Input, Key, TextArea};
 
 fn main() -> io::Result<()> {
     let stdout = io::stdout();

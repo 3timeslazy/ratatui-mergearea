@@ -1,19 +1,19 @@
 [package]
-name = "tui-textarea"
+name = "ratatui-mergearea"
 version = "0.7.0"
 edition = "2021"
-rust-version = "1.56.1" # for `tui` crate support
-authors = ["rhysd <lin90162@yahoo.co.jp>"]
+rust-version = "1.65"
+authors = ["vladimir <vladimir.fetisov@pm.me>"]
 description = """
 tui-textarea is a simple yet powerful text editor widget for ratatui and tui-rs. Multi-line
 text editor can be easily put as part of your TUI application.
 """
 license = "MIT"
-homepage = "https://github.com/rhysd/tui-textarea#readme"
-repository = "https://github.com/rhysd/tui-textarea"
+homepage = "https://github.com/3timeslazy/ratatui-mergearea#readme"
+repository = "https://github.com/3timeslazy/ratatui-mergearea"
 readme = "README.md"
-categories = ["text-editors", "text-processing"]
-keywords = ["tui", "textarea", "editor", "input", "ratatui"]
+categories = ["text-editors", "text-processing", "local-first"]
+keywords = ["tui", "textarea", "editor", "input", "ratatui", "automerge", "crdt"]
 include = ["/src", "/examples", "/tests", "/README.md", "/LICENSE.txt"]
 
 [features]
@@ -46,6 +46,7 @@ termwiz = { version = "0.22.0", optional = true }
 tui = { version = "0.19", default-features = false, optional = true }
 unicode-width = "0.2.0"
 serde = { version = "1", optional = true , features = ["derive"] }
+autosurgeon = "0.8.7"
 
 [[example]]
 name = "minimal"

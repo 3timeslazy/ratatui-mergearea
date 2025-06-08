@@ -1,4 +1,5 @@
 use crate::cursor::CursorMove;
+use crate::cursor_v2::CursorMove as CursorMoveV2;
 use crate::highlight::LineHighlighter;
 use crate::history::{Edit, EditKind, History};
 use crate::input::{Input, Key};
@@ -13,8 +14,9 @@ use crate::widget::Viewport;
 use crate::word::{find_word_exclusive_end_forward, find_word_start_backward};
 #[cfg(feature = "ratatui")]
 use ratatui::text::Line;
-use std::cmp::Ordering;
+use std::cmp::{self, Ordering};
 use std::fmt;
+use std::ops::Deref;
 #[cfg(feature = "tuirs")]
 use tui::text::Spans as Line;
 use unicode_width::UnicodeWidthChar as _;
@@ -125,59 +127,11 @@ pub struct TextArea<'a> {
     mask: Option<char>,
     selection_start: Option<(usize, usize)>,
     select_style: Style,
-}
 
-/// Convert any iterator whose elements can be converted into [`String`] into [`TextArea`]. Each [`String`] element is
-/// handled as line. Ensure that the strings don't contain any newlines. This method is useful to create [`TextArea`]
-/// from [`std::str::Lines`].
-/// ```
-/// use tui_textarea::TextArea;
-///
-/// // From `String`
-/// let text = "hello\nworld";
-/// let textarea = TextArea::from(text.lines());
-/// assert_eq!(textarea.lines(), ["hello", "world"]);
-///
-/// // From array of `&str`
-/// let textarea = TextArea::from(["hello", "world"]);
-/// assert_eq!(textarea.lines(), ["hello", "world"]);
-///
-/// // From slice of `&str`
-/// let slice = &["hello", "world"];
-/// let textarea = TextArea::from(slice.iter().copied());
-/// assert_eq!(textarea.lines(), ["hello", "world"]);
-/// ```
-impl<I> From<I> for TextArea<'_>
-where
-    I: IntoIterator,
-    I::Item: Into<String>,
-{
-    fn from(i: I) -> Self {
-        Self::new(i.into_iter().map(|s| s.into()).collect::<Vec<String>>())
-    }
-}
+    text: autosurgeon::Text,
 
-/// Collect line texts from iterator as [`TextArea`]. It is useful when creating a textarea with text read from a file.
-/// [`Iterator::collect`] handles errors which may happen on reading each lines. The following example reads text from
-/// a file efficiently line-by-line.
-/// ```
-/// use std::fs;
-/// use std::io::{self, BufRead};
-/// use std::path::Path;
-/// use tui_textarea::TextArea;
-///
-/// fn read_from_file<'a>(path: impl AsRef<Path>) -> io::Result<TextArea<'a>> {
-///     let file = fs::File::open(path)?;
-///     io::BufReader::new(file).lines().collect()
-/// }
-///
-/// let textarea = read_from_file("README.md").unwrap();
-/// assert!(!textarea.is_empty());
-/// ```
-impl<S: Into<String>> FromIterator<S> for TextArea<'_> {
-    fn from_iter<I: IntoIterator<Item = S>>(iter: I) -> Self {
-        iter.into()
-    }
+    // TODO: make private
+    pub cursor_v2: usize,
 }
 
 /// Create [`TextArea`] instance with empty text content.
@@ -190,7 +144,7 @@ impl<S: Into<String>> FromIterator<S> for TextArea<'_> {
 /// ```
 impl Default for TextArea<'_> {
     fn default() -> Self {
-        Self::new(vec![String::new()])
+        Self::new(autosurgeon::Text::default())
     }
 }
 
@@ -204,13 +158,9 @@ impl<'a> TextArea<'a> {
     /// let textarea = TextArea::new(lines);
     /// assert_eq!(textarea.lines(), ["hello", "...", "goodbye"]);
     /// ```
-    pub fn new(mut lines: Vec<String>) -> Self {
-        if lines.is_empty() {
-            lines.push(String::new());
-        }
-
+    pub fn new(text: autosurgeon::Text) -> Self {
         Self {
-            lines,
+            lines: vec!["".to_string()],
             block: None,
             style: Style::default(),
             cursor: (0, 0),
@@ -230,7 +180,14 @@ impl<'a> TextArea<'a> {
             mask: None,
             selection_start: None,
             select_style: Style::default().bg(Color::LightBlue),
+
+            text,
+            cursor_v2: 0,
         }
+    }
+
+    pub fn text(&self) -> &autosurgeon::Text {
+        &self.text
     }
 
     /// Handle a key input with default key mappings. For default key mappings, see the table in
@@ -272,6 +229,7 @@ impl<'a> TextArea<'a> {
     pub fn input(&mut self, input: impl Into<Input>) -> bool {
         let input = input.into();
         let modified = match input {
+            // Insert new line
             Input {
                 key: Key::Char('m'),
                 ctrl: true,
@@ -287,24 +245,30 @@ impl<'a> TextArea<'a> {
             | Input {
                 key: Key::Enter, ..
             } => {
-                self.insert_newline();
+                self.insert_newline_v2();
                 true
             }
+
+            // Insert char
             Input {
                 key: Key::Char(c),
                 ctrl: false,
                 alt: false,
                 ..
             } => {
-                self.insert_char(c);
+                self.insert_char_v2(c);
                 true
             }
+
+            // Insert tab
             Input {
                 key: Key::Tab,
                 ctrl: false,
                 alt: false,
                 ..
-            } => self.insert_tab(),
+            } => self.insert_tab_v2(),
+
+            // Delete char
             Input {
                 key: Key::Char('h'),
                 ctrl: true,
@@ -316,7 +280,9 @@ impl<'a> TextArea<'a> {
                 ctrl: false,
                 alt: false,
                 ..
-            } => self.delete_char(),
+            } => self.delete_char_v2(),
+
+            // Delete next char
             Input {
                 key: Key::Char('d'),
                 ctrl: true,
@@ -328,49 +294,59 @@ impl<'a> TextArea<'a> {
                 ctrl: false,
                 alt: false,
                 ..
-            } => self.delete_next_char(),
-            Input {
-                key: Key::Char('k'),
-                ctrl: true,
-                alt: false,
-                ..
-            } => self.delete_line_by_end(),
-            Input {
-                key: Key::Char('j'),
-                ctrl: true,
-                alt: false,
-                ..
-            } => self.delete_line_by_head(),
-            Input {
-                key: Key::Char('w'),
-                ctrl: true,
-                alt: false,
-                ..
-            }
-            | Input {
-                key: Key::Char('h'),
-                ctrl: false,
-                alt: true,
-                ..
-            }
-            | Input {
-                key: Key::Backspace,
-                ctrl: false,
-                alt: true,
-                ..
-            } => self.delete_word(),
-            Input {
-                key: Key::Delete,
-                ctrl: false,
-                alt: true,
-                ..
-            }
-            | Input {
-                key: Key::Char('d'),
-                ctrl: false,
-                alt: true,
-                ..
-            } => self.delete_next_word(),
+            } => self.delete_next_char_v2(),
+
+            // Similar to d$ (TODO)
+            //
+            // Input {
+            //     key: Key::Char('k'),
+            //     ctrl: true,
+            //     alt: false,
+            //     ..
+            // } => self.delete_line_by_end(),
+
+            // Similar to d^ (TODO)
+            //
+            // Input {
+            //     key: Key::Char('j'),
+            //     ctrl: true,
+            //     alt: false,
+            //     ..
+            // } => self.delete_line_by_head(),
+
+            // Input {
+            //     key: Key::Char('w'),
+            //     ctrl: true,
+            //     alt: false,
+            //     ..
+            // }
+            // | Input {
+            //     key: Key::Char('h'),
+            //     ctrl: false,
+            //     alt: true,
+            //     ..
+            // }
+            // | Input {
+            //     key: Key::Backspace,
+            //     ctrl: false,
+            //     alt: true,
+            //     ..
+            // } => self.delete_word(),
+
+            // Input {
+            //     key: Key::Delete,
+            //     ctrl: false,
+            //     alt: true,
+            //     ..
+            // }
+            // | Input {
+            //     key: Key::Char('d'),
+            //     ctrl: false,
+            //     alt: true,
+            //     ..
+            // } => self.delete_next_word(),
+
+            // Scroll down
             Input {
                 key: Key::Char('n'),
                 ctrl: true,
@@ -383,9 +359,11 @@ impl<'a> TextArea<'a> {
                 alt: false,
                 shift,
             } => {
-                self.move_cursor_with_shift(CursorMove::Down, shift);
+                self.move_cursor_v2(CursorMoveV2::Down);
                 false
             }
+
+            // Scroll up
             Input {
                 key: Key::Char('p'),
                 ctrl: true,
@@ -398,9 +376,11 @@ impl<'a> TextArea<'a> {
                 alt: false,
                 shift,
             } => {
-                self.move_cursor_with_shift(CursorMove::Up, shift);
+                self.move_cursor_v2(CursorMoveV2::Up);
                 false
             }
+
+            // Scroll right
             Input {
                 key: Key::Char('f'),
                 ctrl: true,
@@ -413,9 +393,11 @@ impl<'a> TextArea<'a> {
                 alt: false,
                 shift,
             } => {
-                self.move_cursor_with_shift(CursorMove::Forward, shift);
+                self.move_cursor_v2(CursorMoveV2::Forward);
                 false
             }
+
+            // Scroll left
             Input {
                 key: Key::Char('b'),
                 ctrl: true,
@@ -428,233 +410,251 @@ impl<'a> TextArea<'a> {
                 alt: false,
                 shift,
             } => {
-                self.move_cursor_with_shift(CursorMove::Back, shift);
+                self.move_cursor_v2(CursorMoveV2::Back);
                 false
             }
-            Input {
-                key: Key::Char('a'),
-                ctrl: true,
-                alt: false,
-                shift,
-            }
-            | Input {
-                key: Key::Home,
-                shift,
-                ..
-            }
-            | Input {
-                key: Key::Left | Key::Char('b'),
-                ctrl: true,
-                alt: true,
-                shift,
-            } => {
-                self.move_cursor_with_shift(CursorMove::Head, shift);
-                false
-            }
-            Input {
-                key: Key::Char('e'),
-                ctrl: true,
-                alt: false,
-                shift,
-            }
-            | Input {
-                key: Key::End,
-                shift,
-                ..
-            }
-            | Input {
-                key: Key::Right | Key::Char('f'),
-                ctrl: true,
-                alt: true,
-                shift,
-            } => {
-                self.move_cursor_with_shift(CursorMove::End, shift);
-                false
-            }
-            Input {
-                key: Key::Char('<'),
-                ctrl: false,
-                alt: true,
-                shift,
-            }
-            | Input {
-                key: Key::Up | Key::Char('p'),
-                ctrl: true,
-                alt: true,
-                shift,
-            } => {
-                self.move_cursor_with_shift(CursorMove::Top, shift);
-                false
-            }
-            Input {
-                key: Key::Char('>'),
-                ctrl: false,
-                alt: true,
-                shift,
-            }
-            | Input {
-                key: Key::Down | Key::Char('n'),
-                ctrl: true,
-                alt: true,
-                shift,
-            } => {
-                self.move_cursor_with_shift(CursorMove::Bottom, shift);
-                false
-            }
-            Input {
-                key: Key::Char('f'),
-                ctrl: false,
-                alt: true,
-                shift,
-            }
-            | Input {
-                key: Key::Right,
-                ctrl: true,
-                alt: false,
-                shift,
-            } => {
-                self.move_cursor_with_shift(CursorMove::WordForward, shift);
-                false
-            }
-            Input {
-                key: Key::Char('b'),
-                ctrl: false,
-                alt: true,
-                shift,
-            }
-            | Input {
-                key: Key::Left,
-                ctrl: true,
-                alt: false,
-                shift,
-            } => {
-                self.move_cursor_with_shift(CursorMove::WordBack, shift);
-                false
-            }
-            Input {
-                key: Key::Char(']'),
-                ctrl: false,
-                alt: true,
-                shift,
-            }
-            | Input {
-                key: Key::Char('n'),
-                ctrl: false,
-                alt: true,
-                shift,
-            }
-            | Input {
-                key: Key::Down,
-                ctrl: true,
-                alt: false,
-                shift,
-            } => {
-                self.move_cursor_with_shift(CursorMove::ParagraphForward, shift);
-                false
-            }
-            Input {
-                key: Key::Char('['),
-                ctrl: false,
-                alt: true,
-                shift,
-            }
-            | Input {
-                key: Key::Char('p'),
-                ctrl: false,
-                alt: true,
-                shift,
-            }
-            | Input {
-                key: Key::Up,
-                ctrl: true,
-                alt: false,
-                shift,
-            } => {
-                self.move_cursor_with_shift(CursorMove::ParagraphBack, shift);
-                false
-            }
-            Input {
-                key: Key::Char('u'),
-                ctrl: true,
-                alt: false,
-                ..
-            } => self.undo(),
-            Input {
-                key: Key::Char('r'),
-                ctrl: true,
-                alt: false,
-                ..
-            } => self.redo(),
-            Input {
-                key: Key::Char('y'),
-                ctrl: true,
-                alt: false,
-                ..
-            }
-            | Input {
-                key: Key::Paste, ..
-            } => self.paste(),
-            Input {
-                key: Key::Char('x'),
-                ctrl: true,
-                alt: false,
-                ..
-            }
-            | Input { key: Key::Cut, .. } => self.cut(),
-            Input {
-                key: Key::Char('c'),
-                ctrl: true,
-                alt: false,
-                ..
-            }
-            | Input { key: Key::Copy, .. } => {
-                self.copy();
-                false
-            }
-            Input {
-                key: Key::Char('v'),
-                ctrl: true,
-                alt: false,
-                shift,
-            }
-            | Input {
-                key: Key::PageDown,
-                shift,
-                ..
-            } => {
-                self.scroll_with_shift(Scrolling::PageDown, shift);
-                false
-            }
-            Input {
-                key: Key::Char('v'),
-                ctrl: false,
-                alt: true,
-                shift,
-            }
-            | Input {
-                key: Key::PageUp,
-                shift,
-                ..
-            } => {
-                self.scroll_with_shift(Scrolling::PageUp, shift);
-                false
-            }
-            Input {
-                key: Key::MouseScrollDown,
-                shift,
-                ..
-            } => {
-                self.scroll_with_shift((1, 0).into(), shift);
-                false
-            }
-            Input {
-                key: Key::MouseScrollUp,
-                shift,
-                ..
-            } => {
-                self.scroll_with_shift((-1, 0).into(), shift);
-                false
-            }
+
+            // Input {
+            //     key: Key::Char('a'),
+            //     ctrl: true,
+            //     alt: false,
+            //     shift,
+            // }
+            // | Input {
+            //     key: Key::Home,
+            //     shift,
+            //     ..
+            // }
+            // | Input {
+            //     key: Key::Left | Key::Char('b'),
+            //     ctrl: true,
+            //     alt: true,
+            //     shift,
+            // } => {
+            //     self.move_cursor_with_shift(CursorMove::Head, shift);
+            //     false
+            // }
+
+            // Move to the end of line
+            // Input {
+            //     key: Key::Char('e'),
+            //     ctrl: true,
+            //     alt: false,
+            //     shift,
+            // }
+            // | Input {
+            //     key: Key::End,
+            //     shift,
+            //     ..
+            // }
+            // | Input {
+            //     key: Key::Right | Key::Char('f'),
+            //     ctrl: true,
+            //     alt: true,
+            //     shift,
+            // } => {
+            //     self.move_cursor_with_shift(CursorMove::End, shift);
+            //     false
+            // }
+
+            // Input {
+            //     key: Key::Char('<'),
+            //     ctrl: false,
+            //     alt: true,
+            //     shift,
+            // }
+            // | Input {
+            //     key: Key::Up | Key::Char('p'),
+            //     ctrl: true,
+            //     alt: true,
+            //     shift,
+            // } => {
+            //     self.move_cursor_with_shift(CursorMove::Top, shift);
+            //     false
+            // }
+
+            // Input {
+            //     key: Key::Char('>'),
+            //     ctrl: false,
+            //     alt: true,
+            //     shift,
+            // }
+            // | Input {
+            //     key: Key::Down | Key::Char('n'),
+            //     ctrl: true,
+            //     alt: true,
+            //     shift,
+            // } => {
+            //     self.move_cursor_with_shift(CursorMove::Bottom, shift);
+            //     false
+            // }
+
+            // Input {
+            //     key: Key::Char('f'),
+            //     ctrl: false,
+            //     alt: true,
+            //     shift,
+            // }
+            // | Input {
+            //     key: Key::Right,
+            //     ctrl: true,
+            //     alt: false,
+            //     shift,
+            // } => {
+            //     self.move_cursor_with_shift(CursorMove::WordForward, shift);
+            //     false
+            // }
+
+            // Input {
+            //     key: Key::Char('b'),
+            //     ctrl: false,
+            //     alt: true,
+            //     shift,
+            // }
+            // | Input {
+            //     key: Key::Left,
+            //     ctrl: true,
+            //     alt: false,
+            //     shift,
+            // } => {
+            //     self.move_cursor_with_shift(CursorMove::WordBack, shift);
+            //     false
+            // }
+
+            // Input {
+            //     key: Key::Char(']'),
+            //     ctrl: false,
+            //     alt: true,
+            //     shift,
+            // }
+            // | Input {
+            //     key: Key::Char('n'),
+            //     ctrl: false,
+            //     alt: true,
+            //     shift,
+            // }
+            // | Input {
+            //     key: Key::Down,
+            //     ctrl: true,
+            //     alt: false,
+            //     shift,
+            // } => {
+            //     self.move_cursor_with_shift(CursorMove::ParagraphForward, shift);
+            //     false
+            // }
+
+            // Input {
+            //     key: Key::Char('['),
+            //     ctrl: false,
+            //     alt: true,
+            //     shift,
+            // }
+            // | Input {
+            //     key: Key::Char('p'),
+            //     ctrl: false,
+            //     alt: true,
+            //     shift,
+            // }
+            // | Input {
+            //     key: Key::Up,
+            //     ctrl: true,
+            //     alt: false,
+            //     shift,
+            // } => {
+            //     self.move_cursor_with_shift(CursorMove::ParagraphBack, shift);
+            //     false
+            // }
+
+            // Input {
+            //     key: Key::Char('u'),
+            //     ctrl: true,
+            //     alt: false,
+            //     ..
+            // } => self.undo(),
+
+            // Input {
+            //     key: Key::Char('r'),
+            //     ctrl: true,
+            //     alt: false,
+            //     ..
+            // } => self.redo(),
+
+            // Input {
+            //     key: Key::Char('y'),
+            //     ctrl: true,
+            //     alt: false,
+            //     ..
+            // }
+            // | Input {
+            //     key: Key::Paste, ..
+            // } => self.paste(),
+
+            // Input {
+            //     key: Key::Char('x'),
+            //     ctrl: true,
+            //     alt: false,
+            //     ..
+            // }
+            // | Input { key: Key::Cut, .. } => self.cut(),
+
+            // Input {
+            //     key: Key::Char('c'),
+            //     ctrl: true,
+            //     alt: false,
+            //     ..
+            // }
+            // | Input { key: Key::Copy, .. } => {
+            //     self.copy();
+            //     false
+            // }
+
+            // Input {
+            //     key: Key::Char('v'),
+            //     ctrl: true,
+            //     alt: false,
+            //     shift,
+            // }
+            // | Input {
+            //     key: Key::PageDown,
+            //     shift,
+            //     ..
+            // } => {
+            //     self.scroll_with_shift(Scrolling::PageDown, shift);
+            //     false
+            // }
+
+            // Input {
+            //     key: Key::Char('v'),
+            //     ctrl: false,
+            //     alt: true,
+            //     shift,
+            // }
+            // | Input {
+            //     key: Key::PageUp,
+            //     shift,
+            //     ..
+            // } => {
+            //     self.scroll_with_shift(Scrolling::PageUp, shift);
+            //     false
+            // }
+
+            // Input {
+            //     key: Key::MouseScrollDown,
+            //     shift,
+            //     ..
+            // } => {
+            //     self.scroll_with_shift((1, 0).into(), shift);
+            //     false
+            // }
+
+            // Input {
+            //     key: Key::MouseScrollUp,
+            //     shift,
+            //     ..
+            // } => {
+            //     self.scroll_with_shift((-1, 0).into(), shift);
+            //     false
+            // }
             _ => false,
         };
 
@@ -779,6 +779,11 @@ impl<'a> TextArea<'a> {
         );
     }
 
+    pub fn insert_char_v2(&mut self, c: char) {
+        self.text.splice(self.cursor_v2, 0, c.to_string());
+        self.move_cursor_v2(CursorMoveV2::Forward);
+    }
+
     /// Insert a string at current cursor position. This method returns if some text was inserted or not in the textarea.
     /// Both `\n` and `\r\n` are recognized as newlines but `\r` isn't.
     /// ```
@@ -856,6 +861,22 @@ impl<'a> TextArea<'a> {
 
         self.cursor.1 += s.chars().count();
         self.push_history(EditKind::InsertStr(s), Pos::new(row, col, i), end_offset);
+        true
+    }
+
+    fn insert_piece_v2(&mut self, s: String) -> bool {
+        if s.is_empty() {
+            return false;
+        }
+
+        debug_assert!(
+            !s.contains('\n'),
+            "string given to TextArea::insert_piece must not contain newline",
+        );
+
+        self.text.splice(self.cursor_v2, 0, &s);
+        self.cursor_v2 += s.chars().count();
+
         true
     }
 
@@ -1061,6 +1082,15 @@ impl<'a> TextArea<'a> {
         self.insert_piece(spaces(len).to_string())
     }
 
+    pub fn insert_tab_v2(&mut self) -> bool {
+        if self.hard_tab_indent {
+            self.insert_char_v2('\t');
+            return true;
+        }
+
+        self.insert_piece_v2(spaces(self.tab_len).to_string())
+    }
+
     /// Insert a newline at current cursor position.
     /// ```
     /// use tui_textarea::{TextArea, CursorMove};
@@ -1087,6 +1117,11 @@ impl<'a> TextArea<'a> {
         self.lines.insert(row + 1, next_line);
         self.cursor = (row + 1, 0);
         self.push_history(EditKind::InsertNewline, Pos::new(row, col, offset), 0);
+    }
+
+    pub fn insert_newline_v2(&mut self) {
+        self.text.splice(self.cursor_v2, 0, "\n");
+        self.move_cursor_v2(CursorMoveV2::Forward);
     }
 
     /// Delete a newline from **head** of current cursor line. This method returns if a newline was deleted or not in
@@ -1157,6 +1192,17 @@ impl<'a> TextArea<'a> {
         }
     }
 
+    pub fn delete_char_v2(&mut self) -> bool {
+        if self.cursor_v2 == 0 {
+            return false;
+        }
+
+        self.text.splice(self.cursor_v2, -1, "");
+        self.move_cursor_v2(CursorMoveV2::Back);
+
+        true
+    }
+
     /// Delete one character next to cursor. When the cursor is at end of line, the newline next to the cursor will be
     /// removed. This method returns if a character was deleted or not in the textarea.
     /// ```
@@ -1180,6 +1226,16 @@ impl<'a> TextArea<'a> {
         }
 
         self.delete_char()
+    }
+
+    pub fn delete_next_char_v2(&mut self) -> bool {
+        let before = self.cursor_v2;
+        self.move_cursor_v2(CursorMoveV2::Forward);
+        if before == self.cursor_v2 {
+            return false; // Cursor didn't move, meant no character at next of cursor.
+        }
+
+        self.delete_char_v2()
     }
 
     /// Delete string from cursor to end of the line. When the cursor is at end of line, the newline next to the cursor
@@ -1529,6 +1585,12 @@ impl<'a> TextArea<'a> {
         self.move_cursor_with_shift(m, self.selection_start.is_some());
     }
 
+    pub fn move_cursor_v2(&mut self, m: CursorMoveV2) {
+        if let Some(cursor) = m.next_cursor(self.cursor_v2, &self.text, &self.viewport) {
+            self.cursor_v2 = cursor;
+        };
+    }
+
     fn move_cursor_with_shift(&mut self, m: CursorMove, shift: bool) {
         if let Some(cursor) = m.next_cursor(self.cursor, &self.lines, &self.viewport) {
             if shift {
@@ -1611,6 +1673,67 @@ impl<'a> TextArea<'a> {
         if let Some((start, end)) = self.selection_positions() {
             hl.selection(row, start.row, start.offset, end.row, end.offset);
         }
+
+        hl.into_spans()
+    }
+
+    pub(crate) fn cursor2(&self) -> (usize, usize) {
+        let mut row = 0;
+        let mut col = 0;
+
+        for (i, chr) in self.text.as_str().char_indices() {
+            if i >= self.cursor_v2 {
+                break;
+            }
+
+            match chr {
+                '\n' => {
+                    row += 1;
+                    col = 0;
+                }
+                _ => {
+                    col += 1;
+                }
+            }
+        }
+
+        (row, col)
+    }
+
+    pub(crate) fn line_spans_v2<'b>(&'b self, line: &'b str, row: usize, lnum_len: u8) -> Line<'b> {
+        let mut hl = LineHighlighter::new(
+            line,
+            self.cursor_style,
+            self.tab_len,
+            self.mask,
+            self.select_style,
+        );
+
+        let cursor2 = self.cursor2();
+        if row == cursor2.0 {
+            hl.cursor_line(cursor2.1, self.cursor_line_style);
+        }
+
+        // if line.len() == 0 {
+        //     hl.cursor_line(0, self.cursor_line_style);
+        // }
+
+        // if let Some(style) = self.line_number_style {
+        //     hl.line_number(row, lnum_len, style);
+        // }
+
+        // if row == self.cursor.0 {
+        //     hl.cursor_line(self.cursor.1, self.cursor_line_style);
+        // }
+
+        // #[cfg(feature = "search")]
+        // if let Some(matches) = self.search.matches(line) {
+        //     hl.search(matches, self.search.style);
+        // }
+
+        // if let Some((start, end)) = self.selection_positions() {
+        //     hl.selection(row, start.row, start.offset, end.row, end.offset);
+        // }
 
         hl.into_spans()
     }
@@ -2040,6 +2163,10 @@ impl<'a> TextArea<'a> {
         self.cursor
     }
 
+    pub fn cursor_v2(&self) -> usize {
+        self.cursor_v2
+    }
+
     /// Get the current selection range as a pair of the start position and the end position. The range is bounded
     /// inclusively below and exclusively above. The positions are 0-base character-wise (row, col) values.
     /// The first element of the pair is always smaller than the second one even when it is ahead of the cursor.
@@ -2399,35 +2526,5 @@ impl<'a> TextArea<'a> {
         }
         scrolling.scroll(&mut self.viewport);
         self.move_cursor_with_shift(CursorMove::InViewport, shift);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    // Separate tests for tui-rs support
-    #[test]
-    fn scroll() {
-        use crate::ratatui::buffer::Buffer;
-        use crate::ratatui::layout::Rect;
-        use crate::ratatui::widgets::Widget as _;
-
-        let mut textarea: TextArea = (0..20).map(|i| i.to_string()).collect();
-        let r = Rect {
-            x: 0,
-            y: 0,
-            width: 24,
-            height: 8,
-        };
-        let mut b = Buffer::empty(r);
-        textarea.render(r, &mut b);
-
-        textarea.scroll((15, 0));
-        assert_eq!(textarea.cursor(), (15, 0));
-        textarea.scroll((-5, 0));
-        assert_eq!(textarea.cursor(), (15, 0));
-        textarea.scroll((-5, 0));
-        assert_eq!(textarea.cursor(), (12, 0));
     }
 }

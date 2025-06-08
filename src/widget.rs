@@ -92,6 +92,24 @@ fn next_scroll_top(prev_top: u16, cursor: u16, len: u16) -> u16 {
 }
 
 impl<'a> TextArea<'a> {
+    fn text_widget_v2(&'a self, top_row: usize, height: usize) -> Text<'a> {
+        let text = self.text().as_str();
+        let mut text_lines = text.lines().collect::<Vec<&str>>();
+
+        // a hack to make library show cursor on an empty line
+        text_lines.push("");
+
+        let lines_len = text_lines.len();
+        let lnum_len = num_digits(lines_len);
+        let bottom_row = cmp::min(top_row + height, lines_len);
+        let mut lines = Vec::with_capacity(bottom_row - top_row);
+        for (i, line) in text_lines[top_row..bottom_row].iter().enumerate() {
+            lines.push(self.line_spans_v2(line, top_row + i, lnum_len));
+        }
+
+        Text::from(lines)
+    }
+
     fn text_widget(&'a self, top_row: usize, height: usize) -> Text<'a> {
         let lines_len = self.lines().len();
         let lnum_len = num_digits(lines_len);
@@ -143,7 +161,7 @@ impl Widget for &TextArea<'_> {
         let (text, style) = if !self.placeholder.is_empty() && self.is_empty() {
             (self.placeholder_widget(), self.placeholder_style)
         } else {
-            (self.text_widget(top_row as _, height as _), self.style())
+            (self.text_widget_v2(top_row as _, height as _), self.style())
         };
 
         // To get fine control over the text color and the surrrounding block they have to be rendered separately

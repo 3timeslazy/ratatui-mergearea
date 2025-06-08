@@ -8,6 +8,7 @@
 compile_error!("ratatui support and tui-rs support are exclusive. only one of them can be enabled at the same time. see https://github.com/rhysd/tui-textarea#installation");
 
 mod cursor;
+mod cursor_v2;
 mod highlight;
 mod history;
 mod input;
@@ -37,6 +38,7 @@ use termion;
 #[cfg(feature = "tuirs-termion")]
 use termion_15 as termion;
 
+pub use cursor_v2::CursorMove as CursorMoveV2;
 pub use cursor::CursorMove;
 pub use input::{Input, Key};
 pub use scroll::Scrolling;
