@@ -1715,6 +1715,10 @@ impl<'a> TextArea<'a> {
             self.select_style,
         );
 
+        if line.len() == 0 {
+            hl.cursor_line(0, self.cursor_line_style);
+        }
+
         let cursor2 = self.cursor2();
         if row == cursor2.0 {
             hl.cursor_line(cursor2.1, self.cursor_line_style);
@@ -2259,7 +2263,7 @@ impl<'a> TextArea<'a> {
     /// assert!(!textarea.is_empty());
     /// ```
     pub fn is_empty(&self) -> bool {
-        self.lines == [""]
+        self.text.as_str().len() == 0
     }
 
     /// Get the yanked text. Text is automatically yanked when deleting strings by [`TextArea::delete_line_by_head`],
