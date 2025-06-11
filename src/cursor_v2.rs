@@ -1,12 +1,8 @@
 
-use crate::TextArea;
 use crate::widget::Viewport;
-use crate::word::{
-    find_word_inclusive_end_forward, find_word_start_backward, find_word_start_forward,
-};
+use crate::word::find_word_inclusive_end_forward;
 #[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
-use core::panic;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use std::cmp;

@@ -97,7 +97,7 @@ impl<'a> TextArea<'a> {
         let mut text_lines = text.lines().collect::<Vec<&str>>();
 
         // a hack to make library show cursor on an empty line
-        text_lines.push("");
+        // text_lines.push("");
 
         let lines_len = text_lines.len();
         let lnum_len = num_digits(lines_len);
