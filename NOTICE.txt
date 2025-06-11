@@ -1,0 +1,1 @@
+This library includes code from https://github.com/rhysd/tui-textarea licensed under the MIT License
