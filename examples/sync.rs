@@ -39,12 +39,9 @@ fn activate(editor: &mut Editor<'_>) {
 }
 
 fn main() -> io::Result<()> {
-    let stdout = io::stdout();
-    let mut stdout = stdout.lock();
-    enable_raw_mode()?;
-    crossterm::execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-    let backend = CrosstermBackend::new(stdout);
-    let mut term = Terminal::new(backend)?;
+    color_eyre::install().unwrap();
+
+    let mut term = ratatui::init();
 
     let mut doc1 = AutoCommit::new();
     let state1 = State {
@@ -109,18 +106,12 @@ fn main() -> io::Result<()> {
             }
 
             input => {
-                editors[which].textarea.input(input);
+                editors[which].textarea.input_emacs(input);
             }
         }
     }
 
-    disable_raw_mode()?;
-    crossterm::execute!(
-        term.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    )?;
-    term.show_cursor()?;
+    ratatui::restore();
 
     Ok(())
 }

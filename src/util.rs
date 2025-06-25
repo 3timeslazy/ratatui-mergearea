@@ -19,3 +19,20 @@ impl Pos {
         Self { row, col, offset }
     }
 }
+
+pub fn find_line_start(offset: usize, chars: &[char]) -> usize {
+    let mut current_line_start = offset;
+    while current_line_start > 0 && chars[current_line_start - 1] != '\n' {
+        current_line_start -= 1;
+    }
+    current_line_start
+}
+
+pub fn find_line_end(offset: usize, chars: &[char]) -> usize {
+    let mut line_end = offset;
+    while line_end < chars.len() && chars[line_end] != '\n' {
+        line_end += 1;
+    }
+    line_end - 1
+}
+

@@ -44,6 +44,8 @@ unicode-width = "0.2.0"
 serde = { version = "1", optional = true , features = ["derive"] }
 autosurgeon = "0.8.7"
 automerge = "0.6.1"
+color-eyre = "0.6.5"
+backtrace = "0.3.74"
 
 [[example]]
 name = "minimal"

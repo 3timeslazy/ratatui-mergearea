@@ -1,6 +1,5 @@
-
-use crate::widget::Viewport;
 use crate::word::find_word_inclusive_end_forward;
+use crate::{util, widget::Viewport};
 #[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
 #[cfg(feature = "serde")]
@@ -64,6 +63,45 @@ pub enum CursorMove {
     /// assert_eq!(textarea.cursor(), (2, 0));
     /// ```
     Down,
+    /// Move cursor to the head of line. When the cursor is at the head of line, it moves to the end of previous line.
+    /// ```
+    /// use tui_textarea::{TextArea, CursorMove};
+    ///
+    /// let mut textarea = TextArea::from(["abc"]);
+    ///
+    /// textarea.move_cursor(CursorMove::Forward);
+    /// textarea.move_cursor(CursorMove::Forward);
+    /// textarea.move_cursor(CursorMove::Head);
+    /// assert_eq!(textarea.cursor(), (0, 0));
+    /// ```
+    Head,
+    /// Move cursor to the end of line. When the cursor is at the end of line, it moves to the head of next line.
+    /// ```
+    /// use tui_textarea::{TextArea, CursorMove};
+    ///
+    /// let mut textarea = TextArea::from(["abc"]);
+    ///
+    /// textarea.move_cursor(CursorMove::End);
+    /// assert_eq!(textarea.cursor(), (0, 3));
+    /// ```
+    End,
+    /// Move cursor to (row, col) position. When the position points outside the text, the cursor position is made fit
+    /// within the text. Note that row and col are 0-based. (0, 0) means the first character of the first line.
+    ///
+    /// When there are 10 lines, jumping to row 15 moves the cursor to the last line (row is 9 in the case). When there
+    /// are 10 characters in the line, jumping to col 15 moves the cursor to end of the line (col is 10 in the case).
+    /// ```
+    /// use tui_textarea::{TextArea, CursorMove};
+    ///
+    /// let mut textarea = TextArea::from(["aaaa", "bbbb", "cccc"]);
+    ///
+    /// textarea.move_cursor(CursorMove::Jump(1, 2));
+    /// assert_eq!(textarea.cursor(), (1, 2));
+    ///
+    /// textarea.move_cursor(CursorMove::Jump(10,  10));
+    /// assert_eq!(textarea.cursor(), (2, 4));
+    /// ```
+    Jump(u16, u16),
 }
 
 impl CursorMove {
@@ -139,6 +177,36 @@ impl CursorMove {
                 let new_column = cmp::min(current_column, next_line_length);
 
                 Some(next_line_start + new_column)
+            }
+            Head => {
+                let chars = text.as_str().chars().collect::<Vec<_>>();
+                Some(find_line_start(offset, &chars))
+            }
+            End => {
+                let chars = text.as_str().chars().collect::<Vec<_>>();
+                Some(util::find_line_end(offset, &chars) + 1)
+            }
+            Jump(row, col) => {
+                let mut curr_row = 0;
+                let mut curr_col = 0;
+                let mut index = 0;
+
+                for c in text.as_str().chars() {
+                    if curr_row == *row && curr_col == *col {
+                        break;
+                    }
+
+                    if c == '\n' {
+                        curr_row += 1;
+                        curr_col = 0;
+                    } else {
+                        curr_col += 1;
+                    }
+
+                    index += 1;
+                }
+
+                Some(index)
             }
         }
     }

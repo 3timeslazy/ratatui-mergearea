@@ -1,10 +1,10 @@
 use crate::ratatui::style::Style;
 use crate::ratatui::text::Span;
-use crate::util::{num_digits, spaces};
+use crate::util::{self, num_digits, spaces};
 #[cfg(feature = "ratatui")]
 use ratatui::text::Line;
 use std::borrow::Cow;
-use std::cmp::Ordering;
+use std::cmp::{self, Ordering};
 use std::iter;
 #[cfg(feature = "tuirs")]
 use tui::text::Spans as Line;
@@ -184,6 +184,41 @@ impl<'a> LineHighlighter<'a> {
                 .push((Boundary::Select(self.select_style), start));
             self.boundaries.push((Boundary::End, end));
         }
+    }
+
+    pub fn selection_v2(
+        &mut self,
+        line_start: usize,
+        line_end: usize,
+        sel_start: usize,
+        sel_end: usize,
+    ) {
+        if sel_start == sel_end {
+            return;
+        }
+
+        if line_end + 1 < sel_start || line_start >= sel_end {
+            return;
+        }
+
+        if sel_start == line_end + 1 {
+            self.select_at_end = true;
+        }
+        if sel_end > line_end {
+            self.select_at_end = true;
+        }
+
+        let start = sel_start.saturating_sub(line_start);
+
+        let end = if sel_end > line_end {
+            line_end - line_start + 1
+        } else {
+            sel_end - line_start
+        };
+
+        self.boundaries
+            .push((Boundary::Select(self.select_style), start));
+        self.boundaries.push((Boundary::End, end));
     }
 
     pub fn into_spans(self) -> Line<'a> {

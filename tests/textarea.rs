@@ -1,6 +1,6 @@
+use ratatui_mergearea::{CursorMoveV2, TextArea};
 use std::cmp;
 use std::fmt::Debug;
-use tui_textarea::{CursorMove, TextArea};
 
 // fn assert_undo_redo<T: Debug>(
 //     before_pos: (usize, usize),
@@ -1320,41 +1320,41 @@ use tui_textarea::{CursorMove, TextArea};
 //     }
 // }
 
-// #[test]
-// fn test_delete_selection_on_delete_operations() {
-//     macro_rules! test_case {
-//         ($name:ident($($args:expr),*)) => {
-//             (
-//                 stringify!($name),
-//                 (|t| t.$name($($args),*)) as fn(&mut TextArea) -> bool,
-//             )
-//         };
-//     }
+#[test]
+fn test_delete_selection_on_delete_operations() {
+    macro_rules! test_case {
+        ($name:ident($($args:expr),*)) => {
+            (
+                stringify!($name),
+                (|t| t.$name($($args),*)) as fn(&mut TextArea) -> bool,
+            )
+        };
+    }
 
-//     let tests = [
-//         test_case!(delete_char()),
-//         test_case!(delete_next_char()),
-//         test_case!(delete_line_by_end()),
-//         test_case!(delete_line_by_head()),
-//         test_case!(delete_word()),
-//         test_case!(delete_next_word()),
-//         test_case!(delete_str(3)),
-//     ];
+    let tests = [
+        test_case!(delete_char_v2()),
+        test_case!(delete_next_char_v2()),
+        // test_case!(delete_line_by_end()),
+        // test_case!(delete_line_by_head()),
+        // test_case!(delete_word()),
+        // test_case!(delete_next_word()),
+        // test_case!(delete_str(3)),
+    ];
 
-//     for (n, f) in tests {
-//         let mut t = TextArea::from(["ab", "cd", "ef"]);
-//         t.move_cursor(CursorMove::Jump(0, 1));
-//         t.start_selection();
-//         t.move_cursor(CursorMove::Jump(2, 1));
+    for (n, f) in tests {
+        let mut t = TextArea::new(autosurgeon::Text::with_value("ab\ncd\nef"));
+        t.move_cursor_v2(CursorMoveV2::Jump(0, 1));
+        t.start_selection_v2();
+        t.move_cursor_v2(CursorMoveV2::Jump(2, 1));
 
-//         let modified = f(&mut t);
-//         assert!(modified, "{n}");
-//         assert_eq!(t.lines(), ["af"], "{n}");
-//         assert_eq!(t.cursor(), (0, 1), "{n}");
+        let modified = f(&mut t);
+        assert!(modified, "{n}");
+        assert_eq!(t.text().as_str(), "af", "{n}");
+        assert_eq!(t.cursor_v2, 1);
 
-//         assert_undo_redo((2, 1), &["ab", "cd", "ef"], &["af"], &mut t, n);
-//     }
-// }
+        // assert_undo_redo((2, 1), &["ab", "cd", "ef"], &["af"], &mut t, n);
+    }
+}
 
 // #[test]
 // fn test_delete_selection_on_delete_edge_cases() {

@@ -3,7 +3,7 @@ use crate::ratatui::layout::Rect;
 use crate::ratatui::text::{Span, Text};
 use crate::ratatui::widgets::{Paragraph, Widget};
 use crate::textarea::TextArea;
-use crate::util::num_digits;
+use crate::util::{self, num_digits};
 #[cfg(feature = "ratatui")]
 use ratatui::text::Line;
 use std::cmp;
@@ -94,10 +94,7 @@ fn next_scroll_top(prev_top: u16, cursor: u16, len: u16) -> u16 {
 impl<'a> TextArea<'a> {
     fn text_widget_v2(&'a self, top_row: usize, height: usize) -> Text<'a> {
         let text = self.text().as_str();
-        let mut text_lines = text.lines().collect::<Vec<&str>>();
-
-        // a hack to make library show cursor on an empty line
-        // text_lines.push("");
+        let text_lines = text.lines().collect::<Vec<&str>>();
 
         let lines_len = text_lines.len();
         let lnum_len = num_digits(lines_len);

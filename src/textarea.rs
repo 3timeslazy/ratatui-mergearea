@@ -9,7 +9,7 @@ use crate::ratatui::widgets::{Block, Widget};
 use crate::scroll::Scrolling;
 #[cfg(feature = "search")]
 use crate::search::Search;
-use crate::util::{spaces, Pos};
+use crate::util::{self, spaces, Pos};
 use crate::widget::Viewport;
 use crate::word::{find_word_exclusive_end_forward, find_word_start_backward};
 #[cfg(feature = "ratatui")]
@@ -132,6 +132,7 @@ pub struct TextArea<'a> {
 
     // TODO: make private
     pub cursor_v2: usize,
+    selection_start_v2: Option<usize>,
 }
 
 /// Create [`TextArea`] instance with empty text content.
@@ -183,6 +184,7 @@ impl<'a> TextArea<'a> {
 
             text,
             cursor_v2: 0,
+            selection_start_v2: None,
         }
     }
 
@@ -233,6 +235,112 @@ impl<'a> TextArea<'a> {
     /// assert!(modified);
     /// ```
     pub fn input(&mut self, input: impl Into<Input>) -> bool {
+        let input = input.into();
+        let modified = match input {
+            Input {
+                key: Key::Enter, ..
+            } => {
+                self.insert_newline_v2();
+                true
+            }
+
+            Input {
+                key: Key::Char(c),
+                ctrl: false,
+                alt: false,
+                ..
+            } => {
+                self.insert_char_v2(c);
+                true
+            }
+
+            Input {
+                key: Key::Tab,
+                ctrl: false,
+                alt: false,
+                ..
+            } => self.insert_tab_v2(),
+
+            Input {
+                key: Key::Backspace,
+                ctrl: false,
+                alt: false,
+                ..
+            } => self.delete_char_v2(),
+
+            Input {
+                key: Key::Delete,
+                ctrl: false,
+                alt: false,
+                ..
+            } => self.delete_next_char_v2(),
+
+            Input {
+                key: Key::Down,
+                ctrl: false,
+                alt: false,
+                shift,
+            } => {
+                self.move_cursor_with_shift_v2(CursorMoveV2::Down, shift);
+                false
+            }
+
+            Input {
+                key: Key::Up,
+                ctrl: false,
+                alt: false,
+                shift,
+            } => {
+                self.move_cursor_with_shift_v2(CursorMoveV2::Up, shift);
+                false
+            }
+
+            Input {
+                key: Key::Right,
+                ctrl: false,
+                alt: false,
+                shift,
+            } => {
+                self.move_cursor_with_shift_v2(CursorMoveV2::Forward, shift);
+                false
+            }
+
+            Input {
+                key: Key::Left,
+                ctrl: false,
+                alt: false,
+                shift,
+            } => {
+                self.move_cursor_with_shift_v2(CursorMoveV2::Back, shift);
+                false
+            }
+
+            _ => false,
+        };
+
+        // Check invariants
+        debug_assert!(!self.lines.is_empty(), "no line after {:?}", input);
+        let (r, c) = self.cursor;
+        debug_assert!(
+            self.lines.len() > r,
+            "cursor {:?} exceeds max lines {} after {:?}",
+            self.cursor,
+            self.lines.len(),
+            input,
+        );
+        debug_assert!(
+            self.lines[r].chars().count() >= c,
+            "cursor {:?} exceeds max col {} at line {:?} after {:?}",
+            self.cursor,
+            self.lines[r].chars().count(),
+            self.lines[r],
+            input,
+        );
+
+        modified
+    }
+
+    pub fn input_emacs(&mut self, input: impl Into<Input>) -> bool {
         let input = input.into();
         let modified = match input {
             // Insert new line
@@ -365,7 +473,7 @@ impl<'a> TextArea<'a> {
                 alt: false,
                 shift,
             } => {
-                self.move_cursor_v2(CursorMoveV2::Down);
+                self.move_cursor_with_shift_v2(CursorMoveV2::Down, shift);
                 false
             }
 
@@ -382,7 +490,7 @@ impl<'a> TextArea<'a> {
                 alt: false,
                 shift,
             } => {
-                self.move_cursor_v2(CursorMoveV2::Up);
+                self.move_cursor_with_shift_v2(CursorMoveV2::Up, shift);
                 false
             }
 
@@ -399,7 +507,7 @@ impl<'a> TextArea<'a> {
                 alt: false,
                 shift,
             } => {
-                self.move_cursor_v2(CursorMoveV2::Forward);
+                self.move_cursor_with_shift_v2(CursorMoveV2::Forward, shift);
                 false
             }
 
@@ -416,52 +524,52 @@ impl<'a> TextArea<'a> {
                 alt: false,
                 shift,
             } => {
-                self.move_cursor_v2(CursorMoveV2::Back);
+                self.move_cursor_with_shift_v2(CursorMoveV2::Back, shift);
                 false
             }
 
-            // Input {
-            //     key: Key::Char('a'),
-            //     ctrl: true,
-            //     alt: false,
-            //     shift,
-            // }
-            // | Input {
-            //     key: Key::Home,
-            //     shift,
-            //     ..
-            // }
-            // | Input {
-            //     key: Key::Left | Key::Char('b'),
-            //     ctrl: true,
-            //     alt: true,
-            //     shift,
-            // } => {
-            //     self.move_cursor_with_shift(CursorMove::Head, shift);
-            //     false
-            // }
+            Input {
+                key: Key::Char('a'),
+                ctrl: true,
+                alt: false,
+                shift,
+            }
+            | Input {
+                key: Key::Home,
+                shift,
+                ..
+            }
+            | Input {
+                key: Key::Left | Key::Char('b'),
+                ctrl: true,
+                alt: true,
+                shift,
+            } => {
+                self.move_cursor_with_shift_v2(CursorMoveV2::Head, shift);
+                false
+            }
 
             // Move to the end of line
-            // Input {
-            //     key: Key::Char('e'),
-            //     ctrl: true,
-            //     alt: false,
-            //     shift,
-            // }
-            // | Input {
-            //     key: Key::End,
-            //     shift,
-            //     ..
-            // }
-            // | Input {
-            //     key: Key::Right | Key::Char('f'),
-            //     ctrl: true,
-            //     alt: true,
-            //     shift,
-            // } => {
-            //     self.move_cursor_with_shift(CursorMove::End, shift);
-            //     false
-            // }
+            Input {
+                key: Key::Char('e'),
+                ctrl: true,
+                alt: false,
+                shift,
+            }
+            | Input {
+                key: Key::End,
+                shift,
+                ..
+            }
+            | Input {
+                key: Key::Right | Key::Char('f'),
+                ctrl: true,
+                alt: true,
+                shift,
+            } => {
+                self.move_cursor_with_shift_v2(CursorMoveV2::End, shift);
+                false
+            }
 
             // Input {
             //     key: Key::Char('<'),
@@ -786,7 +894,13 @@ impl<'a> TextArea<'a> {
     }
 
     pub fn insert_char_v2(&mut self, c: char) {
-        self.text.splice(self.cursor_v2, 0, c.to_string());
+        let cur = self
+            .text
+            .as_str()
+            .char_indices()
+            .nth(self.cursor_v2)
+            .unwrap_or_default();
+        self.text.splice(cur.0, 0, c.to_string());
         self.move_cursor_v2(CursorMoveV2::Forward);
     }
 
@@ -923,6 +1037,24 @@ impl<'a> TextArea<'a> {
             EditKind::DeleteChunk(deleted)
         };
         self.push_history(edit, end, start.offset);
+    }
+
+    fn delete_range_v2(&mut self, start: usize, end: usize, should_yank: bool) {
+        self.cursor_v2 = start;
+
+        let diff = (end as isize) - (start as isize);
+        self.text.splice(start, (end - start) as isize, "");
+
+        // if should_yank {
+        //     self.yank = YankText::Chunk(deleted.clone());
+        // }
+
+        // let edit = if deleted.len() == 1 {
+        //     EditKind::DeleteStr(deleted.remove(0))
+        // } else {
+        //     EditKind::DeleteChunk(deleted)
+        // };
+        // self.push_history(edit, end, start.offset);
     }
 
     /// Delete a string from the current cursor position. The `chars` parameter means number of characters, not a byte
@@ -1199,6 +1331,10 @@ impl<'a> TextArea<'a> {
     }
 
     pub fn delete_char_v2(&mut self) -> bool {
+        if self.delete_selection_v2(false) {
+            return true;
+        }
+
         if self.cursor_v2 == 0 {
             return false;
         }
@@ -1235,10 +1371,14 @@ impl<'a> TextArea<'a> {
     }
 
     pub fn delete_next_char_v2(&mut self) -> bool {
+        if self.delete_selection_v2(false) {
+            return true;
+        }
+
         let before = self.cursor_v2;
         self.move_cursor_v2(CursorMoveV2::Forward);
         if before == self.cursor_v2 {
-            return false; // Cursor didn't move, meant no character at next of cursor.
+            return false;
         }
 
         self.delete_char_v2()
@@ -1397,6 +1537,10 @@ impl<'a> TextArea<'a> {
         self.selection_start = Some(self.cursor);
     }
 
+    pub fn start_selection_v2(&mut self) {
+        self.selection_start_v2 = Some(self.cursor_v2);
+    }
+
     /// Stop the current text selection. This method does nothing if text selection is not ongoing.
     /// ```
     /// use tui_textarea::{TextArea, CursorMove};
@@ -1415,6 +1559,10 @@ impl<'a> TextArea<'a> {
     /// ```
     pub fn cancel_selection(&mut self) {
         self.selection_start = None;
+    }
+
+    pub fn cancel_selection_v2(&mut self) {
+        self.selection_start_v2 = None;
     }
 
     /// Select the entire text. Cursor moves to the end of the text buffer. When text selection is already ongoing,
@@ -1464,6 +1612,12 @@ impl<'a> TextArea<'a> {
             .unwrap_or(line.len())
     }
 
+    fn line_offset_v2(&self, offset: usize) -> usize {
+        let chars = self.text.as_str().chars().collect::<Vec<char>>();
+        let line_start = util::find_line_start(offset, &chars);
+        offset - line_start
+    }
+
     /// Set the style used for text selection. The default style is light blue.
     /// ```
     /// use tui_textarea::TextArea;
@@ -1505,9 +1659,26 @@ impl<'a> TextArea<'a> {
         }
     }
 
+    fn selection_positions_v2(&self) -> Option<(usize, usize)> {
+        let s = self.selection_start_v2?;
+        let e = self.cursor_v2;
+
+        match s.cmp(&e) {
+            Ordering::Less => Some((s, e)),
+            Ordering::Equal => None,
+            Ordering::Greater => Some((e, s)),
+        }
+    }
+
     fn take_selection_positions(&mut self) -> Option<(Pos, Pos)> {
         let range = self.selection_positions();
         self.cancel_selection();
+        range
+    }
+
+    fn take_selection_positions_v2(&mut self) -> Option<(usize, usize)> {
+        let range = self.selection_positions_v2();
+        self.cancel_selection_v2();
         range
     }
 
@@ -1575,6 +1746,14 @@ impl<'a> TextArea<'a> {
         false
     }
 
+    fn delete_selection_v2(&mut self, should_yank: bool) -> bool {
+        if let Some((s, e)) = self.take_selection_positions_v2() {
+            self.delete_range_v2(s, e, should_yank);
+            return true;
+        }
+        false
+    }
+
     /// Move the cursor to the position specified by the [`CursorMove`] parameter. For each kind of cursor moves, see
     /// the document of [`CursorMove`].
     /// ```
@@ -1592,9 +1771,7 @@ impl<'a> TextArea<'a> {
     }
 
     pub fn move_cursor_v2(&mut self, m: CursorMoveV2) {
-        if let Some(cursor) = m.next_cursor(self.cursor_v2, &self.text, &self.viewport) {
-            self.cursor_v2 = cursor;
-        };
+        self.move_cursor_with_shift_v2(m, self.selection_start_v2.is_some());
     }
 
     fn move_cursor_with_shift(&mut self, m: CursorMove, shift: bool) {
@@ -1608,6 +1785,19 @@ impl<'a> TextArea<'a> {
             }
             self.cursor = cursor;
         }
+    }
+
+    pub fn move_cursor_with_shift_v2(&mut self, m: CursorMoveV2, shift: bool) {
+        if let Some(cursor) = m.next_cursor(self.cursor_v2, &self.text, &self.viewport) {
+            if shift {
+                if self.selection_start_v2.is_none() {
+                    self.start_selection_v2();
+                }
+            } else {
+                self.cancel_selection_v2();
+            }
+            self.cursor_v2 = cursor;
+        };
     }
 
     /// Undo the last modification. This method returns if the undo modified text contents or not in the textarea.
@@ -1683,7 +1873,7 @@ impl<'a> TextArea<'a> {
         hl.into_spans()
     }
 
-    pub(crate) fn cursor2(&self) -> (usize, usize) {
+    pub fn cursor2(&self) -> (usize, usize) {
         let mut row = 0;
         let mut col = 0;
 
@@ -1741,11 +1931,35 @@ impl<'a> TextArea<'a> {
         //     hl.search(matches, self.search.style);
         // }
 
-        // if let Some((start, end)) = self.selection_positions() {
-        //     hl.selection(row, start.row, start.offset, end.row, end.offset);
-        // }
+        if let Some((start, end)) = self.selection_positions_v2() {
+            let line_start = self.find_row_start_offset(row);
+            let line_end = util::find_line_end(
+                line_start,
+                &self.text.as_str().chars().collect::<Vec<char>>(),
+            );
+            hl.selection_v2(line_start, line_end, start, end);
+        }
 
         hl.into_spans()
+    }
+
+    fn find_row_start_offset(&self, row: usize) -> usize {
+        if row == 0 {
+            return 0;
+        }
+
+        let mut current_row = 0;
+
+        for (i, ch) in self.text.as_str().char_indices() {
+            if ch == '\n' {
+                current_row += 1;
+                if current_row == row {
+                    return i + 1;
+                }
+            }
+        }
+
+        0
     }
 
     /// Build a ratatui (or tui-rs) widget to render the current state of the textarea. The widget instance returned

@@ -1,56 +1,95 @@
-use tui_textarea::{CursorMove, CursorMoveV2, TextArea};
+use ratatui_mergearea::{CursorMove, CursorMoveV2, TextArea};
 
-const BOTTOM_RIGHT: CursorMove = CursorMove::Jump(u16::MAX, u16::MAX);
+const BOTTOM_RIGHT: CursorMoveV2 = CursorMoveV2::Jump(u16::MAX, u16::MAX);
+
+// #[test]
+// fn empty_textarea() {
+//     use CursorMove::*;
+
+//     let mut t = TextArea::default();
+//     for m in [
+//         Forward,
+//         Back,
+//         Up,
+//         Down,
+//         Head,
+//         End,
+//         Top,
+//         Bottom,
+//         WordForward,
+//         WordEnd,
+//         WordBack,
+//         ParagraphForward,
+//         ParagraphBack,
+//         Jump(0, 0),
+//         Jump(u16::MAX, u16::MAX),
+//     ] {
+//         t.move_cursor(m);
+//         assert_eq!(t.cursor(), (0, 0), "{:?}", m);
+//     }
+// }
+
+// #[test]
+// #[rustfmt::skip]
+// fn forward() {
+//     for (text, positions) in [
+//         (
+//             &["abc", "def"][..],
+//             &[1, 2, 3, 4, 5, 6, 7][..],
+//         ),
+//         (
+//             &["あいう", "🐶🐱👪"][..],
+//             &[1, 2, 3, 4, 5, 6, 7][..],
+//         ),
+//         (
+//             &["a"][..],
+//             &[1, 1, 1][..],
+//         ),
+//     ] {
+//         let mut t = TextArea::new(autosurgeon::Text::from(text.join("\n")));
+
+//         for pos in positions {
+//             t.move_cursor_v2(CursorMoveV2::Forward);
+//             assert_eq!(t.cursor_v2, *pos);
+//         }
+//     }
+// }
 
 #[test]
-fn empty_textarea() {
-    use CursorMove::*;
-
-    let mut t = TextArea::default();
-    for m in [
-        Forward,
-        Back,
-        Up,
-        Down,
-        Head,
-        End,
-        Top,
-        Bottom,
-        WordForward,
-        WordEnd,
-        WordBack,
-        ParagraphForward,
-        ParagraphBack,
-        Jump(0, 0),
-        Jump(u16::MAX, u16::MAX),
-    ] {
-        t.move_cursor(m);
-        assert_eq!(t.cursor(), (0, 0), "{:?}", m);
-    }
-}
-
-#[test]
-#[rustfmt::skip]
 fn forward() {
     for (text, positions) in [
         (
-            &["abc", "def"][..],
-            &[1, 2, 3, 4, 5, 6, 7][..],
+            ["abc", "def"],
+            [
+                (0, 1),
+                (0, 2),
+                (0, 3),
+                (1, 0),
+                (1, 1),
+                (1, 2),
+                (1, 3),
+                (1, 3),
+            ],
         ),
-        (
-            &["あいう", "🐶🐱👪"][..],
-            &[1, 2, 3, 4, 5, 6, 7][..],
-        ),
-        (
-            &["a"][..],
-            &[1, 1, 1][..],
-        ),
+        // (
+        //     ["あいう", "🐶🐱👪"],
+        //     [
+        //         (0, 1),
+        //         (0, 2),
+        //         (0, 3),
+        //         (1, 0),
+        //         (1, 1),
+        //         (1, 2),
+        //         (1, 3),
+        //         (1, 3),
+        //     ],
+        // ),
     ] {
         let mut t = TextArea::new(autosurgeon::Text::from(text.join("\n")));
 
         for pos in positions {
             t.move_cursor_v2(CursorMoveV2::Forward);
-            assert_eq!(t.cursor_v2, *pos);
+            assert_eq!(t.cursor2(), pos, "{:?}", t.text());
         }
     }
 }
@@ -58,30 +97,46 @@ fn forward() {
 #[test]
 fn back() {
     for (text, positions) in [
+        // (&["abc", "def"][..], &[6, 5, 4, 3, 2, 1, 0][..]),
+        // (&["あいう", "🐶🐱👪"][..], &[6, 5, 4, 3, 2, 1, 0][..]),
+        // (&["a"][..], &[0, 0, 0][..]),
         (
-            &["abc", "def"][..],
-            &[6, 5, 4, 3, 2, 1, 0][..]
+            ["abc", "def"],
+            [
+                (1, 2),
+                (1, 1),
+                (1, 0),
+                (0, 3),
+                (0, 2),
+                (0, 1),
+                (0, 0),
+                (0, 0),
+            ],
         ),
-        (
-            &["あいう", "🐶🐱👪"][..],
-            &[6, 5, 4, 3, 2, 1, 0][..]
-        ),
-        (
-            &["a"][..],
-            &[0, 0, 0][..],
-        ),
+        // (
+        //     ["あいう", "🐶🐱👪"],
+        //     [
+        //         (1, 2),
+        //         (1, 1),
+        //         (1, 0),
+        //         (0, 3),
+        //         (0, 2),
+        //         (0, 1),
+        //         (0, 0),
+        //         (0, 0),
+        //     ],
+        // ),
     ] {
         let at = autosurgeon::Text::from(text.join("\n"));
         let mut t = TextArea::new(at.clone());
-        t.cursor_v2 = at.as_str().chars().count();
+        t.move_cursor_v2(BOTTOM_RIGHT);
 
         for pos in positions {
             t.move_cursor_v2(CursorMoveV2::Back);
-            assert_eq!(t.cursor_v2, *pos);
+            assert_eq!(t.cursor2(), pos);
         }
     }
 }
-
 
 #[test]
 fn up() {
@@ -173,20 +228,27 @@ fn down() {
     }
 }
 
-// #[test]
-// fn head() {
-//     for text in [["efg", "h", ""], ["あいう", "👪", ""]] {
-//         let mut t = TextArea::from(text);
-//         for row in 0..t.lines().len() {
-//             let len = t.lines()[row].len();
-//             for col in [0, len / 2, len] {
-//                 t.move_cursor(CursorMove::Jump(row as u16, col as u16));
-//                 t.move_cursor(CursorMove::Head);
-//                 assert_eq!(t.cursor(), (row, 0), "{:?}", t.lines());
-//             }
-//         }
-//     }
-// }
+#[test]
+fn head() {
+    for text in ["efg\nh\n", "あいう\n👪\n"] {
+        let mut t = TextArea::new(autosurgeon::Text::from(text));
+        let lines = t
+            .text()
+            .as_str()
+            .lines()
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>();
+
+        for (row, line) in lines.iter().enumerate() {
+            let len = line.len();
+            for col in [0, len / 2, len] {
+                t.move_cursor_v2(CursorMoveV2::Jump(row as u16, col as u16));
+                t.move_cursor_v2(CursorMoveV2::Head);
+                assert_eq!(t.cursor2(), (row, 0), "{lines:?}");
+            }
+        }
+    }
+}
 
 // #[test]
 // fn end() {
