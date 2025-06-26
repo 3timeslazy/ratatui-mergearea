@@ -4,7 +4,7 @@ use crate::{util, widget::Viewport};
 use arbitrary::Arbitrary;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::cmp;
+use std::{cmp, u16};
 
 /// Specify how to move the cursor.
 ///
@@ -85,6 +85,28 @@ pub enum CursorMove {
     /// assert_eq!(textarea.cursor(), (0, 3));
     /// ```
     End,
+    /// Move cursor to the top of lines.
+    /// ```
+    /// use tui_textarea::{TextArea, CursorMove};
+    ///
+    /// let mut textarea = TextArea::from(["a", "b", "c"]);
+    ///
+    /// textarea.move_cursor(CursorMove::Down);
+    /// textarea.move_cursor(CursorMove::Down);
+    /// textarea.move_cursor(CursorMove::Top);
+    /// assert_eq!(textarea.cursor(), (0, 0));
+    /// ```
+    Top,
+    /// Move cursor to the bottom of lines.
+    /// ```
+    /// use tui_textarea::{TextArea, CursorMove};
+    ///
+    /// let mut textarea = TextArea::from(["a", "b", "c"]);
+    ///
+    /// textarea.move_cursor(CursorMove::Bottom);
+    /// assert_eq!(textarea.cursor(), (2, 0));
+    /// ```
+    Bottom,
     /// Move cursor to (row, col) position. When the position points outside the text, the cursor position is made fit
     /// within the text. Note that row and col are 0-based. (0, 0) means the first character of the first line.
     ///
@@ -184,25 +206,59 @@ impl CursorMove {
             }
             End => {
                 let chars = text.as_str().chars().collect::<Vec<_>>();
-                Some(util::find_line_end(offset, &chars) + 1)
+
+                if chars.is_empty() {
+                    None
+                } else {
+                    Some(util::find_line_end(offset, &chars) + 1)
+                }
+            }
+            Top => {
+                let chars = text.as_str().chars().collect::<Vec<_>>();
+                let line_start = find_line_start(offset, &chars);
+                let col = offset - line_start;
+                CursorMove::Jump(0, col as u16).next_cursor(offset, text, viewport)
+            }
+            Bottom => {
+                let chars = text.as_str().chars().collect::<Vec<_>>();
+                let line_start = find_line_start(offset, &chars);
+                let col = offset - line_start;
+                CursorMove::Jump(u16::MAX, col as u16).next_cursor(offset, text, viewport)
             }
             Jump(row, col) => {
-                let mut curr_row = 0;
-                let mut curr_col = 0;
-                let mut index = 0;
+                let chars = text.as_str().chars().collect::<Vec<_>>();
 
-                for c in text.as_str().chars() {
-                    if curr_row == *row && curr_col == *col {
+                let mut curr_row = 0;
+                let mut index = 0;
+                let max_row = {
+                    let mut nls = chars
+                        .iter()
+                        .filter(|c| **c == '\n')
+                        .count()
+                        .saturating_sub(1);
+                    if let Some(last) = chars.last() {
+                        if *last != '\n' {
+                            nls += 1;
+                        }
+                    }
+                    nls
+                };
+                let row = cmp::min(max_row, *row as usize);
+
+                while curr_row != row && index < chars.len() {
+                    if chars[index] == '\n' {
+                        curr_row += 1;
+                    }
+                    index += 1;
+                }
+
+                let offset = index;
+                let mut curr_col = 0;
+                while curr_col as u16 != *col && index < chars.len() {
+                    if chars[offset + curr_col] == '\n' {
                         break;
                     }
-
-                    if c == '\n' {
-                        curr_row += 1;
-                        curr_col = 0;
-                    } else {
-                        curr_col += 1;
-                    }
-
+                    curr_col += 1;
                     index += 1;
                 }
 

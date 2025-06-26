@@ -188,6 +188,10 @@ impl<'a> TextArea<'a> {
         }
     }
 
+    pub fn with_value<S: AsRef<str>>(value: S) -> Self {
+        TextArea::new(autosurgeon::Text::with_value(value))
+    }
+
     pub fn set_text(&mut self, text: autosurgeon::Text) {
         let text_len = text.as_str().chars().count();
         self.text = text;
@@ -571,37 +575,37 @@ impl<'a> TextArea<'a> {
                 false
             }
 
-            // Input {
-            //     key: Key::Char('<'),
-            //     ctrl: false,
-            //     alt: true,
-            //     shift,
-            // }
-            // | Input {
-            //     key: Key::Up | Key::Char('p'),
-            //     ctrl: true,
-            //     alt: true,
-            //     shift,
-            // } => {
-            //     self.move_cursor_with_shift(CursorMove::Top, shift);
-            //     false
-            // }
+            Input {
+                key: Key::Char('<'),
+                ctrl: false,
+                alt: true,
+                shift,
+            }
+            | Input {
+                key: Key::Up | Key::Char('p'),
+                ctrl: true,
+                alt: true,
+                shift,
+            } => {
+                self.move_cursor_with_shift_v2(CursorMoveV2::Top, shift);
+                false
+            }
 
-            // Input {
-            //     key: Key::Char('>'),
-            //     ctrl: false,
-            //     alt: true,
-            //     shift,
-            // }
-            // | Input {
-            //     key: Key::Down | Key::Char('n'),
-            //     ctrl: true,
-            //     alt: true,
-            //     shift,
-            // } => {
-            //     self.move_cursor_with_shift(CursorMove::Bottom, shift);
-            //     false
-            // }
+            Input {
+                key: Key::Char('>'),
+                ctrl: false,
+                alt: true,
+                shift,
+            }
+            | Input {
+                key: Key::Down | Key::Char('n'),
+                ctrl: true,
+                alt: true,
+                shift,
+            } => {
+                self.move_cursor_with_shift_v2(CursorMoveV2::Bottom, shift);
+                false
+            }
 
             // Input {
             //     key: Key::Char('f'),
@@ -894,13 +898,13 @@ impl<'a> TextArea<'a> {
     }
 
     pub fn insert_char_v2(&mut self, c: char) {
-        let cur = self
-            .text
-            .as_str()
+        let text = self.text.as_str();
+        let pos = text
             .char_indices()
             .nth(self.cursor_v2)
-            .unwrap_or_default();
-        self.text.splice(cur.0, 0, c.to_string());
+            .map(|(i, _)| i)
+            .unwrap_or_else(|| text.len());
+        self.text.splice(pos, 0, c.to_string());
         self.move_cursor_v2(CursorMoveV2::Forward);
     }
 
@@ -994,8 +998,11 @@ impl<'a> TextArea<'a> {
             "string given to TextArea::insert_piece must not contain newline",
         );
 
-        self.text.splice(self.cursor_v2, 0, &s);
-        self.cursor_v2 += s.chars().count();
+        for c in s.chars() {
+            self.insert_char_v2(c);
+        }
+        // self.text.splice(self.cursor_v2, 0, &s);
+        // self.cursor_v2 += s.chars().count();
 
         true
     }
@@ -1226,7 +1233,20 @@ impl<'a> TextArea<'a> {
             return true;
         }
 
-        self.insert_piece_v2(spaces(self.tab_len).to_string())
+        let chars = self.text.as_str().chars().collect::<Vec<char>>();
+        let line_start = util::find_line_start(self.cursor_v2, &chars);
+
+        let width: usize = self
+            .text
+            .as_str()
+            .chars()
+            .skip(line_start.saturating_sub(1))
+            .take(self.cursor_v2.saturating_sub(line_start))
+            .map(|c| c.width().unwrap_or(0))
+            .sum();
+
+        let len = self.tab_len - (width % self.tab_len as usize) as u8;
+        self.insert_piece_v2(spaces(len).to_string())
     }
 
     /// Insert a newline at current cursor position.
@@ -1877,12 +1897,8 @@ impl<'a> TextArea<'a> {
         let mut row = 0;
         let mut col = 0;
 
-        for (i, chr) in self.text.as_str().char_indices() {
-            if i >= self.cursor_v2 {
-                break;
-            }
-
-            match chr {
+        for c in self.text.as_str().chars().take(self.cursor_v2) {
+            match c {
                 '\n' => {
                     row += 1;
                     col = 0;

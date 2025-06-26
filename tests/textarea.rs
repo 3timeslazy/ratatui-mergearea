@@ -1,4 +1,4 @@
-use ratatui_mergearea::{CursorMoveV2, TextArea};
+use ratatui_mergearea::{CursorMoveV2 as CursorMove, TextArea};
 use std::cmp;
 use std::fmt::Debug;
 
@@ -31,72 +31,72 @@ use std::fmt::Debug;
 //     assert_eq!(t.cursor(), pos, "pos after redo: {context:?}");
 // }
 
-// #[test]
-// fn test_insert_soft_tab() {
-//     for test in [
-//         ("", 0, "    ", 4),
-//         ("a", 1, "a   ", 3),
-//         ("abcd", 4, "abcd    ", 4),
-//         ("a", 0, "    a", 4),
-//         ("ab", 1, "a   b", 3),
-//         ("abcdefgh", 4, "abcd    efgh", 4),
-//         ("あ", 1, "あ  ", 2),
-//         ("🐶", 1, "🐶  ", 2),
-//         ("あ", 0, "    あ", 4),
-//         ("あい", 1, "あ  い", 2),
-//     ] {
-//         let (input, col, expected, width) = test;
-//         let mut t = TextArea::from([input.to_string()]);
-//         t.move_cursor(CursorMove::Jump(0, col));
-//         assert!(t.insert_tab(), "{test:?}");
-//         assert_eq!(t.lines(), [expected], "{test:?}");
-//         assert_eq!(t.cursor(), (0, col as usize + width), "{test:?}");
-//         assert_undo_redo((0, col as _), &[input], &[expected], &mut t, test);
-//     }
-// }
+#[test]
+fn test_insert_soft_tab() {
+    for test in [
+        ("", 0, "    ", 4),
+        ("a", 1, "a   ", 3),
+        ("abcd", 4, "abcd    ", 4),
+        ("a", 0, "    a", 4),
+        ("ab", 1, "a   b", 3),
+        ("abcdefgh", 4, "abcd    efgh", 4),
+        ("あ", 1, "あ  ", 2),
+        ("🐶", 1, "🐶  ", 2),
+        ("あ", 0, "    あ", 4),
+        ("あい", 1, "あ  い", 2),
+    ] {
+        let (input, col, expected, width) = test;
+        let mut t = TextArea::with_value(input);
+        t.move_cursor_v2(CursorMove::Jump(0, col));
+        assert!(t.insert_tab_v2(), "{test:?}");
+        assert_eq!(t.text().as_str(), expected, "{test:?}");
+        assert_eq!(t.cursor2(), (0, col as usize + width), "{test:?}");
+        // assert_undo_redo((0, col as _), &[input], &[expected], &mut t, test);
+    }
+}
 
-// #[test]
-// fn test_insert_hard_tab() {
-//     let mut t = TextArea::default();
-//     t.set_hard_tab_indent(true);
-//     assert!(t.insert_tab());
-//     assert_eq!(t.cursor(), (0, 1));
-//     assert_undo_redo((0, 0), &[""], &["\t"], &mut t, "");
+#[test]
+fn test_insert_hard_tab() {
+    let mut t = TextArea::default();
+    t.set_hard_tab_indent(true);
+    assert!(t.insert_tab_v2());
+    assert_eq!(t.cursor2(), (0, 1));
+    // assert_undo_redo((0, 0), &[""], &["\t"], &mut t, "");
 
-//     let mut t = TextArea::default();
-//     t.set_hard_tab_indent(true);
-//     t.set_tab_length(0);
-//     t.insert_tab();
-//     assert!(!t.insert_tab());
-//     assert_eq!(t.lines(), [""]);
-//     assert_eq!(t.cursor(), (0, 0));
-// }
+    // let mut t = TextArea::default();
+    // t.set_hard_tab_indent(true);
+    // t.set_tab_length(0);
+    // t.insert_tab_v2();
+    // assert!(!t.insert_tab_v2());
+    // assert_eq!(t.text().as_str(), "");
+    // assert_eq!(t.cursor2(), (0, 0));
+}
 
-// #[test]
-// fn test_insert_char() {
-//     let tests = [
-//         (0, 'x', &["xab"][..]),
-//         (1, 'x', &["axb"][..]),
-//         (2, 'x', &["abx"][..]),
-//         (1, 'あ', &["aあb"][..]),
-//         (1, '\n', &["a", "b"][..]),
-//     ];
+#[test]
+fn test_insert_char() {
+    let tests = [
+        (0, 'x', "xab"),
+        (1, 'x', "axb"),
+        (2, 'x', "abx"),
+        (1, 'あ', "aあb"),
+        (1, '\n', "a\nb"),
+    ];
 
-//     for test in tests {
-//         let (col, ch, want) = test;
-//         let mut t = TextArea::from(["ab"]);
-//         t.move_cursor(CursorMove::Jump(0, col));
-//         t.insert_char(ch);
-//         assert_eq!(t.lines(), want, "{test:?}");
-//         let pos = if ch == '\n' {
-//             (1, 0)
-//         } else {
-//             (0, col as usize + 1)
-//         };
-//         assert_eq!(t.cursor(), pos, "{test:?}");
-//         assert_undo_redo((0, col as _), &["ab"], want, &mut t, test);
-//     }
-// }
+    for test in tests {
+        let (col, ch, want) = test;
+        let mut t = TextArea::with_value("ab");
+        t.move_cursor_v2(CursorMove::Jump(0, col));
+        t.insert_char_v2(ch);
+        assert_eq!(t.text().as_str(), want, "{test:?}");
+        let pos = if ch == '\n' {
+            (1, 0)
+        } else {
+            (0, col as usize + 1)
+        };
+        assert_eq!(t.cursor2(), pos, "{test:?}");
+        // assert_undo_redo((0, col as _), &["ab"], want, &mut t, test);
+    }
+}
 
 // #[test]
 // fn test_insert_str_one_line() {
@@ -1343,9 +1343,9 @@ fn test_delete_selection_on_delete_operations() {
 
     for (n, f) in tests {
         let mut t = TextArea::new(autosurgeon::Text::with_value("ab\ncd\nef"));
-        t.move_cursor_v2(CursorMoveV2::Jump(0, 1));
+        t.move_cursor_v2(CursorMove::Jump(0, 1));
         t.start_selection_v2();
-        t.move_cursor_v2(CursorMoveV2::Jump(2, 1));
+        t.move_cursor_v2(CursorMove::Jump(2, 1));
 
         let modified = f(&mut t);
         assert!(modified, "{n}");
@@ -1356,49 +1356,49 @@ fn test_delete_selection_on_delete_operations() {
     }
 }
 
-// #[test]
-// fn test_delete_selection_on_delete_edge_cases() {
-//     macro_rules! test_case {
-//         ($name:ident($($args:expr),*), $pos:expr) => {
-//             (
-//                 stringify!($name),
-//                 (|t| t.$name($($args),*)) as fn(&mut TextArea) -> bool,
-//                 $pos,
-//             )
-//         };
-//     }
+#[test]
+fn test_delete_selection_on_delete_edge_cases() {
+    macro_rules! test_case {
+        ($name:ident($($args:expr),*), $pos:expr) => {
+            (
+                stringify!($name),
+                (|t| t.$name($($args),*)) as fn(&mut TextArea) -> bool,
+                $pos,
+            )
+        };
+    }
 
-//     // When deleting nothing and deleting newline
-//     let tests = [
-//         test_case!(delete_char(), (0, 0)),
-//         test_case!(delete_char(), (1, 0)),
-//         test_case!(delete_next_char(), (2, 2)),
-//         test_case!(delete_next_char(), (1, 2)),
-//         test_case!(delete_line_by_end(), (0, 2)),
-//         test_case!(delete_line_by_end(), (2, 2)),
-//         test_case!(delete_line_by_head(), (0, 0)),
-//         test_case!(delete_line_by_head(), (1, 0)),
-//         test_case!(delete_word(), (0, 0)),
-//         test_case!(delete_word(), (1, 0)),
-//         test_case!(delete_next_word(), (2, 2)),
-//         test_case!(delete_next_word(), (1, 2)),
-//         test_case!(delete_str(0), (0, 0)),
-//         test_case!(delete_str(100), (2, 2)),
-//     ];
+    // When deleting nothing and deleting newline
+    let tests = [
+        test_case!(delete_char_v2(), (0, 0)),
+        test_case!(delete_char_v2(), (1, 0)),
+        test_case!(delete_next_char_v2(), (2, 2)),
+        test_case!(delete_next_char_v2(), (1, 2)),
+        // test_case!(delete_line_by_end(), (0, 2)),
+        // test_case!(delete_line_by_end(), (2, 2)),
+        // test_case!(delete_line_by_head(), (0, 0)),
+        // test_case!(delete_line_by_head(), (1, 0)),
+        // test_case!(delete_word(), (0, 0)),
+        // test_case!(delete_word(), (1, 0)),
+        // test_case!(delete_next_word(), (2, 2)),
+        // test_case!(delete_next_word(), (1, 2)),
+        // test_case!(delete_str(0), (0, 0)),
+        // test_case!(delete_str(100), (2, 2)),
+    ];
 
-//     for (n, f, pos) in tests {
-//         let mut t = TextArea::from(["ab", "cd", "ef"]);
-//         t.move_cursor(CursorMove::Jump(1, 1));
-//         t.start_selection();
-//         t.move_cursor(CursorMove::Jump(pos.0 as _, pos.1 as _));
+    for (n, f, pos) in tests {
+        let mut t = TextArea::with_value("ab\ncd\nef");
+        t.move_cursor_v2(CursorMove::Jump(1, 1));
+        t.start_selection_v2();
+        t.move_cursor_v2(CursorMove::Jump(pos.0 as _, pos.1 as _));
 
-//         assert!(f(&mut t), "{n}, {pos:?}");
-//         assert_eq!(t.cursor(), cmp::min(pos, (1, 1)), "{n}, {pos:?}");
+        assert!(f(&mut t), "{n}, {pos:?}");
+        assert_eq!(t.cursor2(), cmp::min(pos, (1, 1)), "{n}, {pos:?}");
 
-//         t.undo();
-//         assert_eq!(t.lines(), ["ab", "cd", "ef"], "{n}, {pos:?}");
-//     }
-// }
+        // t.undo();
+        // assert_eq!(t.lines(), ["ab", "cd", "ef"], "{n}, {pos:?}");
+    }
+}
 
 // #[test]
 // fn test_delete_selection_before_insert() {
@@ -1409,31 +1409,31 @@ fn test_delete_selection_on_delete_operations() {
 //                 (|t| {
 //                     t.$name($($args),*);
 //                 }) as fn(&mut TextArea),
-//                 &$want as &[_],
+//                 &$want as &str,
 //             )
 //         };
 //     }
 
 //     let tests = [
-//         test_case!(insert_newline(), ["a", "f"]),
-//         test_case!(insert_char('x'), ["axf"]),
-//         test_case!(insert_tab(), ["a   f"]), // Default tab is 4 spaces
-//         test_case!(insert_str("xyz"), ["axyzf"]),
+//         test_case!(insert_newline_v2(), "a\nf"),
+//         test_case!(insert_char_v2('x'), "axf"),
+//         test_case!(insert_tab_v2(), "a   f"), // Default tab is 4 spaces
+//         // test_case!(insert_str("xyz"), ["axyzf"]),
 //     ];
 
 //     for (n, f, after) in tests {
-//         let mut t = TextArea::from(["ab", "cd", "ef"]);
-//         t.move_cursor(CursorMove::Jump(0, 1));
-//         t.start_selection();
-//         t.move_cursor(CursorMove::Jump(2, 1));
+//         let mut t = TextArea::with_value("ab\ncd\nef");
+//         t.move_cursor_v2(CursorMove::Jump(0, 1));
+//         t.start_selection_v2();
+//         t.move_cursor_v2(CursorMove::Jump(2, 1));
 
 //         f(&mut t);
-//         assert_eq!(t.lines(), after, "{n}");
+//         assert_eq!(t.text().as_str(), after, "{n}");
 
 //         // XXX: Deleting selection and inserting text are separate undo units for now
-//         t.undo();
-//         t.undo();
-//         assert_eq!(t.lines(), ["ab", "cd", "ef"], "{n}");
+//         // t.undo();
+//         // t.undo();
+//         // assert_eq!(t.lines(), ["ab", "cd", "ef"], "{n}");
 //     }
 // }
 
@@ -1532,11 +1532,11 @@ fn test_delete_selection_on_delete_operations() {
 // #[test]
 // fn test_selection_range() {
 //     #[rustfmt::skip]
-//     let mut t = TextArea::from([
+//     let mut t = TextArea::with_value([
 //         "あいうえお",
 //         "Hello",
 //         "🐶🐱🐰🐮🐹",
-//     ]);
+//         ].join("\n"));
 
 //     assert_eq!(t.selection_range(), None);
 
