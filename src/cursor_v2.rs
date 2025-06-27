@@ -1,4 +1,7 @@
-use crate::word::find_word_inclusive_end_forward;
+use crate::word::{
+    find_word_inclusive_end_forward, find_word_inclusive_end_forward_v2,
+    find_word_start_backward_v2, find_word_start_forward_v2,
+};
 use crate::{util, widget::Viewport};
 #[cfg(feature = "arbitrary")]
 use arbitrary::Arbitrary;
@@ -107,6 +110,64 @@ pub enum CursorMove {
     /// assert_eq!(textarea.cursor(), (2, 0));
     /// ```
     Bottom,
+    /// Move cursor forward by one word. Word boundary appears at spaces, punctuations, and others. For example
+    /// `fn foo(a)` consists of words `fn`, `foo`, `(`, `a`, `)`. When the cursor is at the end of line, it moves to the
+    /// head of next line.
+    /// ```
+    /// use tui_textarea::{TextArea, CursorMove};
+    ///
+    /// let mut textarea = TextArea::from(["aaa bbb ccc"]);
+    ///
+    /// textarea.move_cursor(CursorMove::WordForward);
+    /// assert_eq!(textarea.cursor(), (0, 4));
+    /// textarea.move_cursor(CursorMove::WordForward);
+    /// assert_eq!(textarea.cursor(), (0, 8));
+    /// ```
+    WordForward,
+    /// Move cursor forward to the next end of word. Word boundary appears at spaces, punctuations, and others. For example
+    /// `fn foo(a)` consists of words `fn`, `foo`, `(`, `a`, `)`. When the cursor is at the end of line, it moves to the
+    /// end of the first word of the next line. This is similar to the 'e' mapping of Vim in normal mode.
+    /// ```
+    /// use tui_textarea::{TextArea, CursorMove};
+    ///
+    /// let mut textarea = TextArea::from([
+    ///     "aaa bbb [[[ccc]]]",
+    ///     "",
+    ///     " ddd",
+    /// ]);
+    ///
+    ///
+    /// textarea.move_cursor(CursorMove::WordEnd);
+    /// assert_eq!(textarea.cursor(), (0, 2));      // At the end of 'aaa'
+    /// textarea.move_cursor(CursorMove::WordEnd);
+    /// assert_eq!(textarea.cursor(), (0, 6));      // At the end of 'bbb'
+    /// textarea.move_cursor(CursorMove::WordEnd);
+    /// assert_eq!(textarea.cursor(), (0, 10));     // At the end of '[[['
+    /// textarea.move_cursor(CursorMove::WordEnd);
+    /// assert_eq!(textarea.cursor(), (0, 13));     // At the end of 'ccc'
+    /// textarea.move_cursor(CursorMove::WordEnd);
+    /// assert_eq!(textarea.cursor(), (0, 16));     // At the end of ']]]'
+    /// textarea.move_cursor(CursorMove::WordEnd);
+    /// assert_eq!(textarea.cursor(), (2, 3));      // At the end of 'ddd'
+    /// ```
+    WordEnd,
+    /// Move cursor backward by one word.  Word boundary appears at spaces, punctuations, and others. For example
+    /// `fn foo(a)` consists of words `fn`, `foo`, `(`, `a`, `)`.When the cursor is at the head of line, it moves to
+    /// the end of previous line.
+    /// ```
+    /// use tui_textarea::{TextArea, CursorMove};
+    ///
+    /// let mut textarea = TextArea::from(["aaa bbb ccc"]);
+    ///
+    /// textarea.move_cursor(CursorMove::End);
+    /// textarea.move_cursor(CursorMove::WordBack);
+    /// assert_eq!(textarea.cursor(), (0, 8));
+    /// textarea.move_cursor(CursorMove::WordBack);
+    /// assert_eq!(textarea.cursor(), (0, 4));
+    /// textarea.move_cursor(CursorMove::WordBack);
+    /// assert_eq!(textarea.cursor(), (0, 0));
+    /// ```
+    WordBack,
     /// Move cursor to (row, col) position. When the position points outside the text, the cursor position is made fit
     /// within the text. Note that row and col are 0-based. (0, 0) means the first character of the first line.
     ///
@@ -124,6 +185,38 @@ pub enum CursorMove {
     /// assert_eq!(textarea.cursor(), (2, 4));
     /// ```
     Jump(u16, u16),
+    /// Move cursor to keep it within the viewport. For example, when a viewport displays line 8 to line 16:
+    ///
+    /// - cursor at line 4 is moved to line 8
+    /// - cursor at line 20 is moved to line 16
+    /// - cursor at line 12 is not moved
+    ///
+    /// This is useful when you moved a cursor but you don't want to move the viewport.
+    /// ```
+    /// # use ratatui::buffer::Buffer;
+    /// # use ratatui::layout::Rect;
+    /// # use ratatui::widgets::Widget as _;
+    /// use tui_textarea::{TextArea, CursorMove};
+    ///
+    /// // Let's say terminal height is 8.
+    ///
+    /// // Create textarea with 20 lines "0", "1", "2", "3", ...
+    /// // The viewport is displaying from line 1 to line 8.
+    /// let mut textarea: TextArea = (0..20).into_iter().map(|i| i.to_string()).collect();
+    /// # // Call `render` at least once to populate terminal size
+    /// # let r = Rect { x: 0, y: 0, width: 24, height: 8 };
+    /// # let mut b = Buffer::empty(r.clone());
+    /// # textarea.render(r, &mut b);
+    ///
+    /// // Move cursor to the end of lines (line 20). It is outside the viewport (line 1 to line 8)
+    /// textarea.move_cursor(CursorMove::Bottom);
+    /// assert_eq!(textarea.cursor(), (19, 0));
+    ///
+    /// // Cursor is moved to line 8 to enter the viewport
+    /// textarea.move_cursor(CursorMove::InViewport);
+    /// assert_eq!(textarea.cursor(), (7, 0));
+    /// ```
+    InViewport,
 }
 
 impl CursorMove {
@@ -225,6 +318,9 @@ impl CursorMove {
                 let col = offset - line_start;
                 CursorMove::Jump(u16::MAX, col as u16).next_cursor(offset, text, viewport)
             }
+            WordForward => find_word_start_forward_v2(text.as_str(), offset),
+            WordEnd => find_word_inclusive_end_forward_v2(text.as_str(), offset + 1),
+            WordBack => find_word_start_backward_v2(text.as_str(), offset),
             Jump(row, col) => {
                 let chars = text.as_str().chars().collect::<Vec<_>>();
 
@@ -263,6 +359,14 @@ impl CursorMove {
                 }
 
                 Some(index)
+            }
+            InViewport => {
+                let (row_top, col_top, row_bottom, col_bottom) = viewport.position();
+
+                let top = Self::Jump(row_top, col_top).next_cursor(offset, text, viewport)?;
+                let bottom = Self::Jump(row_bottom, col_bottom).next_cursor(offset, text, viewport)?;
+
+                Some(offset.clamp(top, bottom))
             }
         }
     }

@@ -48,7 +48,7 @@ fn test_insert_soft_tab() {
         let (input, col, expected, width) = test;
         let mut t = TextArea::with_value(input);
         t.move_cursor_v2(CursorMove::Jump(0, col));
-        assert!(t.insert_tab_v2(), "{test:?}");
+        assert!(t.insert_tab(), "{test:?}");
         assert_eq!(t.text().as_str(), expected, "{test:?}");
         assert_eq!(t.cursor2(), (0, col as usize + width), "{test:?}");
         // assert_undo_redo((0, col as _), &[input], &[expected], &mut t, test);
@@ -59,7 +59,7 @@ fn test_insert_soft_tab() {
 fn test_insert_hard_tab() {
     let mut t = TextArea::default();
     t.set_hard_tab_indent(true);
-    assert!(t.insert_tab_v2());
+    assert!(t.insert_tab());
     assert_eq!(t.cursor2(), (0, 1));
     // assert_undo_redo((0, 0), &[""], &["\t"], &mut t, "");
 
@@ -86,7 +86,7 @@ fn test_insert_char() {
         let (col, ch, want) = test;
         let mut t = TextArea::with_value("ab");
         t.move_cursor_v2(CursorMove::Jump(0, col));
-        t.insert_char_v2(ch);
+        t.insert_char(ch);
         assert_eq!(t.text().as_str(), want, "{test:?}");
         let pos = if ch == '\n' {
             (1, 0)
@@ -1350,7 +1350,7 @@ fn test_delete_selection_on_delete_operations() {
         let modified = f(&mut t);
         assert!(modified, "{n}");
         assert_eq!(t.text().as_str(), "af", "{n}");
-        assert_eq!(t.cursor_v2, 1);
+        assert_eq!(t.cursor(), 1);
 
         // assert_undo_redo((2, 1), &["ab", "cd", "ef"], &["af"], &mut t, n);
     }

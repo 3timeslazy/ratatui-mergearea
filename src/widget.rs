@@ -92,7 +92,7 @@ fn next_scroll_top(prev_top: u16, cursor: u16, len: u16) -> u16 {
 }
 
 impl<'a> TextArea<'a> {
-    fn text_widget_v2(&'a self, top_row: usize, height: usize) -> Text<'a> {
+    fn text_widget(&'a self, top_row: usize, height: usize) -> Text<'a> {
         let text = self.text().as_str();
         let text_lines = text.lines().collect::<Vec<&str>>();
 
@@ -101,20 +101,9 @@ impl<'a> TextArea<'a> {
         let bottom_row = cmp::min(top_row + height, lines_len);
         let mut lines = Vec::with_capacity(bottom_row - top_row);
         for (i, line) in text_lines[top_row..bottom_row].iter().enumerate() {
-            lines.push(self.line_spans_v2(line, top_row + i, lnum_len));
+            lines.push(self.line_spans(line, top_row + i, lnum_len));
         }
 
-        Text::from(lines)
-    }
-
-    fn text_widget(&'a self, top_row: usize, height: usize) -> Text<'a> {
-        let lines_len = self.lines().len();
-        let lnum_len = num_digits(lines_len);
-        let bottom_row = cmp::min(top_row + height, lines_len);
-        let mut lines = Vec::with_capacity(bottom_row - top_row);
-        for (i, line) in self.lines()[top_row..bottom_row].iter().enumerate() {
-            lines.push(self.line_spans(line.as_str(), top_row + i, lnum_len));
-        }
         Text::from(lines)
     }
 
@@ -125,11 +114,11 @@ impl<'a> TextArea<'a> {
     }
 
     fn scroll_top_row(&self, prev_top: u16, height: u16) -> u16 {
-        next_scroll_top(prev_top, self.cursor().0 as u16, height)
+        next_scroll_top(prev_top, self.cursor2().0 as u16, height)
     }
 
     fn scroll_top_col(&self, prev_top: u16, width: u16) -> u16 {
-        let mut cursor = self.cursor().1 as u16;
+        let mut cursor = self.cursor2().1 as u16;
         // Adjust the cursor position due to the width of line number.
         if self.line_number_style().is_some() {
             let lnum = num_digits(self.lines().len()) as u16 + 2; // `+ 2` for margins
@@ -158,7 +147,7 @@ impl Widget for &TextArea<'_> {
         let (text, style) = if !self.placeholder.is_empty() && self.is_empty() {
             (self.placeholder_widget(), self.placeholder_style)
         } else {
-            (self.text_widget_v2(top_row as _, height as _), self.style())
+            (self.text_widget(top_row as _, height as _), self.style())
         };
 
         // To get fine control over the text color and the surrrounding block they have to be rendered separately

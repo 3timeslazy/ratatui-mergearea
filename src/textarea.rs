@@ -130,8 +130,7 @@ pub struct TextArea<'a> {
 
     text: autosurgeon::Text,
 
-    // TODO: make private
-    pub cursor_v2: usize,
+    cursor_v2: usize,
     selection_start_v2: Option<usize>,
 }
 
@@ -202,7 +201,7 @@ impl<'a> TextArea<'a> {
         &self.text
     }
 
-    /// Handle a key input with default key mappings. For default key mappings, see the table in
+    /// Handle a key input with emacs key mappings. For default key mappings, see the table in
     /// [the module document](./index.html).
     /// `crossterm`, `termion`, and `termwiz` features enable conversion from their own key event types into
     /// [`Input`] so this method can take the event values directly.
@@ -238,112 +237,6 @@ impl<'a> TextArea<'a> {
     /// let modified = textarea.input(input);
     /// assert!(modified);
     /// ```
-    pub fn input(&mut self, input: impl Into<Input>) -> bool {
-        let input = input.into();
-        let modified = match input {
-            Input {
-                key: Key::Enter, ..
-            } => {
-                self.insert_newline_v2();
-                true
-            }
-
-            Input {
-                key: Key::Char(c),
-                ctrl: false,
-                alt: false,
-                ..
-            } => {
-                self.insert_char_v2(c);
-                true
-            }
-
-            Input {
-                key: Key::Tab,
-                ctrl: false,
-                alt: false,
-                ..
-            } => self.insert_tab_v2(),
-
-            Input {
-                key: Key::Backspace,
-                ctrl: false,
-                alt: false,
-                ..
-            } => self.delete_char_v2(),
-
-            Input {
-                key: Key::Delete,
-                ctrl: false,
-                alt: false,
-                ..
-            } => self.delete_next_char_v2(),
-
-            Input {
-                key: Key::Down,
-                ctrl: false,
-                alt: false,
-                shift,
-            } => {
-                self.move_cursor_with_shift_v2(CursorMoveV2::Down, shift);
-                false
-            }
-
-            Input {
-                key: Key::Up,
-                ctrl: false,
-                alt: false,
-                shift,
-            } => {
-                self.move_cursor_with_shift_v2(CursorMoveV2::Up, shift);
-                false
-            }
-
-            Input {
-                key: Key::Right,
-                ctrl: false,
-                alt: false,
-                shift,
-            } => {
-                self.move_cursor_with_shift_v2(CursorMoveV2::Forward, shift);
-                false
-            }
-
-            Input {
-                key: Key::Left,
-                ctrl: false,
-                alt: false,
-                shift,
-            } => {
-                self.move_cursor_with_shift_v2(CursorMoveV2::Back, shift);
-                false
-            }
-
-            _ => false,
-        };
-
-        // Check invariants
-        debug_assert!(!self.lines.is_empty(), "no line after {:?}", input);
-        let (r, c) = self.cursor;
-        debug_assert!(
-            self.lines.len() > r,
-            "cursor {:?} exceeds max lines {} after {:?}",
-            self.cursor,
-            self.lines.len(),
-            input,
-        );
-        debug_assert!(
-            self.lines[r].chars().count() >= c,
-            "cursor {:?} exceeds max col {} at line {:?} after {:?}",
-            self.cursor,
-            self.lines[r].chars().count(),
-            self.lines[r],
-            input,
-        );
-
-        modified
-    }
-
     pub fn input_emacs(&mut self, input: impl Into<Input>) -> bool {
         let input = input.into();
         let modified = match input {
@@ -363,7 +256,7 @@ impl<'a> TextArea<'a> {
             | Input {
                 key: Key::Enter, ..
             } => {
-                self.insert_newline_v2();
+                self.insert_newline();
                 true
             }
 
@@ -374,7 +267,7 @@ impl<'a> TextArea<'a> {
                 alt: false,
                 ..
             } => {
-                self.insert_char_v2(c);
+                self.insert_char(c);
                 true
             }
 
@@ -384,7 +277,7 @@ impl<'a> TextArea<'a> {
                 ctrl: false,
                 alt: false,
                 ..
-            } => self.insert_tab_v2(),
+            } => self.insert_tab(),
 
             // Delete char
             Input {
@@ -607,81 +500,37 @@ impl<'a> TextArea<'a> {
                 false
             }
 
-            // Input {
-            //     key: Key::Char('f'),
-            //     ctrl: false,
-            //     alt: true,
-            //     shift,
-            // }
-            // | Input {
-            //     key: Key::Right,
-            //     ctrl: true,
-            //     alt: false,
-            //     shift,
-            // } => {
-            //     self.move_cursor_with_shift(CursorMove::WordForward, shift);
-            //     false
-            // }
+            Input {
+                key: Key::Char('f'),
+                ctrl: false,
+                alt: true,
+                shift,
+            }
+            | Input {
+                key: Key::Right,
+                ctrl: true,
+                alt: false,
+                shift,
+            } => {
+                self.move_cursor_with_shift_v2(CursorMoveV2::WordForward, shift);
+                false
+            }
 
-            // Input {
-            //     key: Key::Char('b'),
-            //     ctrl: false,
-            //     alt: true,
-            //     shift,
-            // }
-            // | Input {
-            //     key: Key::Left,
-            //     ctrl: true,
-            //     alt: false,
-            //     shift,
-            // } => {
-            //     self.move_cursor_with_shift(CursorMove::WordBack, shift);
-            //     false
-            // }
-
-            // Input {
-            //     key: Key::Char(']'),
-            //     ctrl: false,
-            //     alt: true,
-            //     shift,
-            // }
-            // | Input {
-            //     key: Key::Char('n'),
-            //     ctrl: false,
-            //     alt: true,
-            //     shift,
-            // }
-            // | Input {
-            //     key: Key::Down,
-            //     ctrl: true,
-            //     alt: false,
-            //     shift,
-            // } => {
-            //     self.move_cursor_with_shift(CursorMove::ParagraphForward, shift);
-            //     false
-            // }
-
-            // Input {
-            //     key: Key::Char('['),
-            //     ctrl: false,
-            //     alt: true,
-            //     shift,
-            // }
-            // | Input {
-            //     key: Key::Char('p'),
-            //     ctrl: false,
-            //     alt: true,
-            //     shift,
-            // }
-            // | Input {
-            //     key: Key::Up,
-            //     ctrl: true,
-            //     alt: false,
-            //     shift,
-            // } => {
-            //     self.move_cursor_with_shift(CursorMove::ParagraphBack, shift);
-            //     false
-            // }
+            Input {
+                key: Key::Char('b'),
+                ctrl: false,
+                alt: true,
+                shift,
+            }
+            | Input {
+                key: Key::Left,
+                ctrl: true,
+                alt: false,
+                shift,
+            } => {
+                self.move_cursor_with_shift_v2(CursorMoveV2::WordBack, shift);
+                false
+            }
 
             // Input {
             //     key: Key::Char('u'),
@@ -725,54 +574,53 @@ impl<'a> TextArea<'a> {
             //     self.copy();
             //     false
             // }
+            Input {
+                key: Key::Char('v'),
+                ctrl: true,
+                alt: false,
+                shift,
+            }
+            | Input {
+                key: Key::PageDown,
+                shift,
+                ..
+            } => {
+                self.scroll_with_shift_v2(Scrolling::PageDown, shift);
+                false
+            }
 
-            // Input {
-            //     key: Key::Char('v'),
-            //     ctrl: true,
-            //     alt: false,
-            //     shift,
-            // }
-            // | Input {
-            //     key: Key::PageDown,
-            //     shift,
-            //     ..
-            // } => {
-            //     self.scroll_with_shift(Scrolling::PageDown, shift);
-            //     false
-            // }
+            Input {
+                key: Key::Char('v'),
+                ctrl: false,
+                alt: true,
+                shift,
+            }
+            | Input {
+                key: Key::PageUp,
+                shift,
+                ..
+            } => {
+                self.scroll_with_shift_v2(Scrolling::PageUp, shift);
+                false
+            }
 
-            // Input {
-            //     key: Key::Char('v'),
-            //     ctrl: false,
-            //     alt: true,
-            //     shift,
-            // }
-            // | Input {
-            //     key: Key::PageUp,
-            //     shift,
-            //     ..
-            // } => {
-            //     self.scroll_with_shift(Scrolling::PageUp, shift);
-            //     false
-            // }
+            Input {
+                key: Key::MouseScrollDown,
+                shift,
+                ..
+            } => {
+                self.scroll_with_shift_v2((1, 0).into(), shift);
+                false
+            }
 
-            // Input {
-            //     key: Key::MouseScrollDown,
-            //     shift,
-            //     ..
-            // } => {
-            //     self.scroll_with_shift((1, 0).into(), shift);
-            //     false
-            // }
-
-            // Input {
-            //     key: Key::MouseScrollUp,
-            //     shift,
-            //     ..
-            // } => {
-            //     self.scroll_with_shift((-1, 0).into(), shift);
-            //     false
-            // }
+            Input {
+                key: Key::MouseScrollUp,
+                shift,
+                ..
+            } => {
+                self.scroll_with_shift_v2((-1, 0).into(), shift);
+                false
+            }
             _ => false,
         };
 
@@ -810,7 +658,7 @@ impl<'a> TextArea<'a> {
     ///
     /// This method is useful when you want to define your own key mappings and don't want default key mappings.
     /// See 'Define your own key mappings' section in [the module document](./index.html).
-    pub fn input_without_shortcuts(&mut self, input: impl Into<Input>) -> bool {
+    pub fn input(&mut self, input: impl Into<Input>) -> bool {
         match input.into() {
             Input {
                 key: Key::Char(c),
@@ -830,10 +678,10 @@ impl<'a> TextArea<'a> {
             Input {
                 key: Key::Backspace,
                 ..
-            } => self.delete_char(),
+            } => self.delete_char_v2(),
             Input {
                 key: Key::Delete, ..
-            } => self.delete_next_char(),
+            } => self.delete_next_char_v2(),
             Input {
                 key: Key::Enter, ..
             } => {
@@ -880,24 +728,7 @@ impl<'a> TextArea<'a> {
             return;
         }
 
-        self.delete_selection(false);
-        let (row, col) = self.cursor;
-        let line = &mut self.lines[row];
-        let i = line
-            .char_indices()
-            .nth(col)
-            .map(|(i, _)| i)
-            .unwrap_or(line.len());
-        line.insert(i, c);
-        self.cursor.1 += 1;
-        self.push_history(
-            EditKind::InsertChar(c),
-            Pos::new(row, col, i),
-            i + c.len_utf8(),
-        );
-    }
-
-    pub fn insert_char_v2(&mut self, c: char) {
+        self.delete_selection_v2(false);
         let text = self.text.as_str();
         let pos = text
             .char_indices()
@@ -906,6 +737,13 @@ impl<'a> TextArea<'a> {
             .unwrap_or_else(|| text.len());
         self.text.splice(pos, 0, c.to_string());
         self.move_cursor_v2(CursorMoveV2::Forward);
+
+        // TODO
+        // self.push_history(
+        //             EditKind::InsertChar(c),
+        //             Pos::new(row, col, i),
+        //             i + c.len_utf8(),
+        //         );
     }
 
     /// Insert a string at current cursor position. This method returns if some text was inserted or not in the textarea.
@@ -999,7 +837,7 @@ impl<'a> TextArea<'a> {
         );
 
         for c in s.chars() {
-            self.insert_char_v2(c);
+            self.insert_char(c);
         }
         // self.text.splice(self.cursor_v2, 0, &s);
         // self.cursor_v2 += s.chars().count();
@@ -1207,29 +1045,13 @@ impl<'a> TextArea<'a> {
     /// assert_eq!(textarea.lines(), ["hi      "]);
     /// ```
     pub fn insert_tab(&mut self) -> bool {
-        let modified = self.delete_selection(false);
+        let modified = self.delete_selection_v2(false);
         if self.tab_len == 0 {
             return modified;
         }
 
         if self.hard_tab_indent {
             self.insert_char('\t');
-            return true;
-        }
-
-        let (row, col) = self.cursor;
-        let width: usize = self.lines[row]
-            .chars()
-            .take(col)
-            .map(|c| c.width().unwrap_or(0))
-            .sum();
-        let len = self.tab_len - (width % self.tab_len as usize) as u8;
-        self.insert_piece(spaces(len).to_string())
-    }
-
-    pub fn insert_tab_v2(&mut self) -> bool {
-        if self.hard_tab_indent {
-            self.insert_char_v2('\t');
             return true;
         }
 
@@ -1260,26 +1082,14 @@ impl<'a> TextArea<'a> {
     /// assert_eq!(textarea.lines(), ["h", "i"]);
     /// ```
     pub fn insert_newline(&mut self) {
-        self.delete_selection(false);
+        self.delete_selection_v2(false);
 
-        let (row, col) = self.cursor;
-        let line = &mut self.lines[row];
-        let offset = line
-            .char_indices()
-            .nth(col)
-            .map(|(i, _)| i)
-            .unwrap_or(line.len());
-        let next_line = line[offset..].to_string();
-        line.truncate(offset);
-
-        self.lines.insert(row + 1, next_line);
-        self.cursor = (row + 1, 0);
-        self.push_history(EditKind::InsertNewline, Pos::new(row, col, offset), 0);
-    }
-
-    pub fn insert_newline_v2(&mut self) {
+        // TODO: calculate possition properly
         self.text.splice(self.cursor_v2, 0, "\n");
         self.move_cursor_v2(CursorMoveV2::Forward);
+
+        // TODO
+        // self.push_history(EditKind::InsertNewline, Pos::new(row, col, offset), 0);
     }
 
     /// Delete a newline from **head** of current cursor line. This method returns if a newline was deleted or not in
@@ -1396,7 +1206,7 @@ impl<'a> TextArea<'a> {
         }
 
         let before = self.cursor_v2;
-        self.move_cursor_v2(CursorMoveV2::Forward);
+        self.move_cursor_with_shift_v2(CursorMoveV2::Forward, false);
         if before == self.cursor_v2 {
             return false;
         }
@@ -1426,6 +1236,16 @@ impl<'a> TextArea<'a> {
             return true;
         }
         self.delete_next_char() // At the end of the line. Try to delete next line
+    }
+
+    pub fn delete_line_by_end_v2(&mut self) -> bool {
+        if self.delete_selection_v2(false) {
+            return true;
+        }
+        if self.delete_piece(self.cursor.1, usize::MAX) {
+            return true;
+        }
+        self.delete_next_char_v2() // At the end of the line. Try to delete next line
     }
 
     /// Delete string from cursor to head of the line. When the cursor is at head of line, the newline before the cursor
@@ -1873,74 +1693,14 @@ impl<'a> TextArea<'a> {
             self.select_style,
         );
 
-        if let Some(style) = self.line_number_style {
-            hl.line_number(row, lnum_len, style);
-        }
-
-        if row == self.cursor.0 {
-            hl.cursor_line(self.cursor.1, self.cursor_line_style);
-        }
-
-        #[cfg(feature = "search")]
-        if let Some(matches) = self.search.matches(line) {
-            hl.search(matches, self.search.style);
-        }
-
-        if let Some((start, end)) = self.selection_positions() {
-            hl.selection(row, start.row, start.offset, end.row, end.offset);
-        }
-
-        hl.into_spans()
-    }
-
-    pub fn cursor2(&self) -> (usize, usize) {
-        let mut row = 0;
-        let mut col = 0;
-
-        for c in self.text.as_str().chars().take(self.cursor_v2) {
-            match c {
-                '\n' => {
-                    row += 1;
-                    col = 0;
-                }
-                _ => {
-                    col += 1;
-                }
-            }
-        }
-
-        (row, col)
-    }
-
-    pub(crate) fn line_spans_v2<'b>(&'b self, line: &'b str, row: usize, lnum_len: u8) -> Line<'b> {
-        let mut hl = LineHighlighter::new(
-            line,
-            self.cursor_style,
-            self.tab_len,
-            self.mask,
-            self.select_style,
-        );
-
-        if line.len() == 0 {
-            hl.cursor_line(0, self.cursor_line_style);
-        }
-
         let cursor2 = self.cursor2();
         if row == cursor2.0 {
             hl.cursor_line(cursor2.1, self.cursor_line_style);
         }
 
-        // if line.len() == 0 {
-        //     hl.cursor_line(0, self.cursor_line_style);
-        // }
-
-        // if let Some(style) = self.line_number_style {
-        //     hl.line_number(row, lnum_len, style);
-        // }
-
-        // if row == self.cursor.0 {
-        //     hl.cursor_line(self.cursor.1, self.cursor_line_style);
-        // }
+        if let Some(style) = self.line_number_style {
+            hl.line_number(row, lnum_len, style);
+        }
 
         // #[cfg(feature = "search")]
         // if let Some(matches) = self.search.matches(line) {
@@ -2399,11 +2159,26 @@ impl<'a> TextArea<'a> {
     ///
     /// assert_eq!(textarea.cursor(), (1, 1));
     /// ```
-    pub fn cursor(&self) -> (usize, usize) {
-        self.cursor
+    pub fn cursor2(&self) -> (usize, usize) {
+        let mut row = 0;
+        let mut col = 0;
+
+        for c in self.text.as_str().chars().take(self.cursor_v2) {
+            match c {
+                '\n' => {
+                    row += 1;
+                    col = 0;
+                }
+                _ => {
+                    col += 1;
+                }
+            }
+        }
+
+        (row, col)
     }
 
-    pub fn cursor_v2(&self) -> usize {
+    pub fn cursor(&self) -> usize {
         self.cursor_v2
     }
 
@@ -2757,14 +2532,14 @@ impl<'a> TextArea<'a> {
     /// assert_eq!(textarea.cursor(), (12, 0));
     /// ```
     pub fn scroll(&mut self, scrolling: impl Into<Scrolling>) {
-        self.scroll_with_shift(scrolling.into(), self.selection_start.is_some());
+        self.scroll_with_shift_v2(scrolling.into(), self.selection_start_v2.is_some());
     }
 
-    fn scroll_with_shift(&mut self, scrolling: Scrolling, shift: bool) {
-        if shift && self.selection_start.is_none() {
-            self.selection_start = Some(self.cursor);
+    fn scroll_with_shift_v2(&mut self, scrolling: Scrolling, shift: bool) {
+        if shift && self.selection_start_v2.is_none() {
+            self.selection_start_v2 = Some(self.cursor_v2);
         }
         scrolling.scroll(&mut self.viewport);
-        self.move_cursor_with_shift(CursorMove::InViewport, shift);
+        self.move_cursor_with_shift_v2(CursorMoveV2::InViewport, shift);
     }
 }
