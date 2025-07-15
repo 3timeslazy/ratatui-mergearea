@@ -80,22 +80,24 @@ pub fn find_word_inclusive_end_forward(line: &str, start_col: usize) -> Option<u
 }
 
 pub fn find_word_inclusive_end_forward_v2(text: &str, cursor: usize) -> Option<usize> {
-    let mut it = text.chars().enumerate().skip(cursor);
-    let (mut last_col, c) = it.next()?;
-    let mut prev = CharKind::new(c);
-    for (col, c) in it {
-        let cur = CharKind::new(c);
-        if prev != CharKind::Space && cur != prev {
-            return Some(col.saturating_sub(1));
-        }
-        prev = cur;
-        last_col = col;
+    let chars: Vec<char> = text.chars().collect();
+
+    let mut pos = cursor;
+    while pos < chars.len() && CharKind::new(chars[pos]) == CharKind::Space {
+        pos += 1;
     }
-    if prev != CharKind::Space {
-        Some(last_col)
-    } else {
-        None
+
+    if pos >= chars.len() {
+        return Some(chars.len());
     }
+
+    let word_kind = CharKind::new(chars[pos]);
+
+    while pos < chars.len() && CharKind::new(chars[pos]) == word_kind {
+        pos += 1;
+    }
+
+    Some(pos.saturating_sub(1))
 }
 
 pub fn find_word_start_backward(line: &str, start_col: usize) -> Option<usize> {
@@ -116,21 +118,50 @@ pub fn find_word_start_backward(line: &str, start_col: usize) -> Option<usize> {
     (cur != CharKind::Space).then(|| 0)
 }
 
-pub fn find_word_start_backward_v2(text: &str, cursor: usize) -> Option<usize> {
-    let idx = cmp::min(cursor, text.len());
+pub fn find_word_start_backward_v3(text: &str, cursor: usize) -> Option<usize> {
+    let idx = text
+        .char_indices()
+        .nth(cursor)
+        .map(|(i, c)| i + c.len_utf8())
+        .unwrap_or_else(|| text.len());
+    let cursor = cmp::min(cursor, text.chars().count());
 
     let mut it = text[..idx].chars().rev().enumerate();
     let next = it.next()?.1;
     if next == '\n' {
-        return Some(idx - 1);
+        return Some(cursor - 1);
     }
     let mut cur = CharKind::new(next);
     for (i, c) in it {
         let next = CharKind::new(c);
         if cur != CharKind::Space && next != cur {
-            return Some(cursor - i);
+            return Some(cursor - i - 1);
         }
         cur = next;
     }
     (cur != CharKind::Space).then_some(0)
+}
+
+pub fn find_word_start_backward_v2(text: &str, cursor: usize) -> Option<usize> {
+    let chars: Vec<char> = text.chars().collect();
+
+    let mut pos = cmp::min(cursor, chars.len().saturating_sub(1));
+    while pos > 0 && CharKind::new(chars[pos]) == CharKind::Space {
+        pos -= 1;
+    }
+
+    if pos == 0 {
+        return Some(pos);
+    }
+
+    let word_kind = CharKind::new(chars[pos]);
+    while pos > 0 && CharKind::new(chars[pos]) == word_kind {
+        pos -= 1;
+    }
+
+    if pos == 0 {
+        Some(pos)
+    } else {
+        Some(pos + 1)
+    }
 }

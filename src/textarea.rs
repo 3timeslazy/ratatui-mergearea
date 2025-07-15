@@ -2,6 +2,7 @@ use crate::cursor::CursorMove;
 use crate::cursor_v2::CursorMove as CursorMoveV2;
 use crate::highlight::LineHighlighter;
 use crate::history::{Edit, EditKind, History};
+use crate::history_v2::{Edit as EditV2, EditKind as EditKindV2, History as HistoryV2};
 use crate::input::{Input, Key};
 use crate::ratatui::layout::Alignment;
 use crate::ratatui::style::{Color, Modifier, Style};
@@ -114,6 +115,7 @@ pub struct TextArea<'a> {
     tab_len: u8,
     hard_tab_indent: bool,
     history: History,
+    history_v2: HistoryV2,
     cursor_line_style: Style,
     line_number_style: Option<Style>,
     pub(crate) viewport: Viewport,
@@ -184,6 +186,7 @@ impl<'a> TextArea<'a> {
             text,
             cursor_v2: 0,
             selection_start_v2: None,
+            history_v2: HistoryV2::new(50),
         }
     }
 
@@ -532,48 +535,51 @@ impl<'a> TextArea<'a> {
                 false
             }
 
-            // Input {
-            //     key: Key::Char('u'),
-            //     ctrl: true,
-            //     alt: false,
-            //     ..
-            // } => self.undo(),
+            Input {
+                key: Key::Char('u'),
+                ctrl: true,
+                alt: false,
+                ..
+            } => self.undo(),
 
-            // Input {
-            //     key: Key::Char('r'),
-            //     ctrl: true,
-            //     alt: false,
-            //     ..
-            // } => self.redo(),
+            Input {
+                key: Key::Char('r'),
+                // ctrl: true,
+                // alt: false,
+                ctrl: false,
+                alt: true,
+                ..
+            } => self.redo_v2(),
 
-            // Input {
-            //     key: Key::Char('y'),
-            //     ctrl: true,
-            //     alt: false,
-            //     ..
-            // }
-            // | Input {
-            //     key: Key::Paste, ..
-            // } => self.paste(),
+            Input {
+                key: Key::Char('y'),
+                ctrl: true,
+                alt: false,
+                ..
+            }
+            | Input {
+                key: Key::Paste, ..
+            } => self.paste(),
 
-            // Input {
-            //     key: Key::Char('x'),
-            //     ctrl: true,
-            //     alt: false,
-            //     ..
-            // }
-            // | Input { key: Key::Cut, .. } => self.cut(),
+            Input {
+                key: Key::Char('x'),
+                ctrl: true,
+                alt: false,
+                ..
+            }
+            | Input { key: Key::Cut, .. } => self.cut(),
 
-            // Input {
-            //     key: Key::Char('c'),
-            //     ctrl: true,
-            //     alt: false,
-            //     ..
-            // }
-            // | Input { key: Key::Copy, .. } => {
-            //     self.copy();
-            //     false
-            // }
+            Input {
+                key: Key::Char('c'),
+                ctrl: true,
+                alt: false,
+                ..
+            }
+            | Input { key: Key::Copy, .. } => {
+                self.copy();
+                false
+            }
+
             Input {
                 key: Key::Char('v'),
                 ctrl: true,
@@ -713,6 +719,11 @@ impl<'a> TextArea<'a> {
         self.history.push(edit);
     }
 
+    fn push_history_v2(&mut self, kind: EditKindV2, offset: usize) {
+        let edit = EditV2::new(kind, offset);
+        self.history_v2.push(edit);
+    }
+
     /// Insert a single character at current cursor position.
     /// ```
     /// use tui_textarea::TextArea;
@@ -738,12 +749,7 @@ impl<'a> TextArea<'a> {
         self.text.splice(pos, 0, c.to_string());
         self.move_cursor_v2(CursorMoveV2::Forward);
 
-        // TODO
-        // self.push_history(
-        //             EditKind::InsertChar(c),
-        //             Pos::new(row, col, i),
-        //             i + c.len_utf8(),
-        //         );
+        self.push_history_v2(EditKindV2::InsertChar(c), pos);
     }
 
     /// Insert a string at current cursor position. This method returns if some text was inserted or not in the textarea.
@@ -831,16 +837,11 @@ impl<'a> TextArea<'a> {
             return false;
         }
 
-        debug_assert!(
-            !s.contains('\n'),
-            "string given to TextArea::insert_piece must not contain newline",
-        );
+        let pos = self.char_index(self.cursor_v2);
+        self.text.splice(pos, 0, &s);
+        self.cursor_v2 += s.chars().count();
 
-        for c in s.chars() {
-            self.insert_char(c);
-        }
-        // self.text.splice(self.cursor_v2, 0, &s);
-        // self.cursor_v2 += s.chars().count();
+        self.push_history_v2(EditKindV2::InsertStr(s), pos);
 
         true
     }
@@ -887,12 +888,32 @@ impl<'a> TextArea<'a> {
     fn delete_range_v2(&mut self, start: usize, end: usize, should_yank: bool) {
         self.cursor_v2 = start;
 
-        let diff = (end as isize) - (start as isize);
-        self.text.splice(start, (end - start) as isize, "");
+        let start_pos = self.char_index(start);
+        let end_pos = self.char_index(end);
+        // let start_pos = self
+        //     .text
+        //     .as_str()
+        //     .char_indices()
+        //     .nth(start)
+        //     .map(|(i, _)| i)
+        //     .unwrap_or(0);
+        // let end_pos = self
+        //     .text
+        //     .as_str()
+        //     .char_indices()
+        //     .nth(end)
+        //     .map(|(i, _)| i)
+        //     .unwrap_or(self.text.as_str().len());
 
-        // if should_yank {
-        //     self.yank = YankText::Chunk(deleted.clone());
-        // }
+        let diff = (end_pos as isize) - (start_pos as isize);
+        let deleted = &self.text().as_str().to_string()[start_pos..end_pos];
+        self.text.splice(start, diff, "");
+
+        if should_yank {
+            self.yank = YankText::Piece(deleted.to_string());
+        }
+
+        self.push_history_v2(EditKindV2::DeleteStr(deleted.to_string()), start);
 
         // let edit = if deleted.len() == 1 {
         //     EditKind::DeleteStr(deleted.remove(0))
@@ -1084,11 +1105,13 @@ impl<'a> TextArea<'a> {
     pub fn insert_newline(&mut self) {
         self.delete_selection_v2(false);
 
+        let pos = self.cursor_v2;
         // TODO: calculate possition properly
         self.text.splice(self.cursor_v2, 0, "\n");
         self.move_cursor_v2(CursorMoveV2::Forward);
 
         // TODO
+        self.push_history_v2(EditKindV2::InsertNewline, pos);
         // self.push_history(EditKind::InsertNewline, Pos::new(row, col, offset), 0);
     }
 
@@ -1169,10 +1192,16 @@ impl<'a> TextArea<'a> {
             return false;
         }
 
-        self.text.splice(self.cursor_v2, -1, "");
-        self.move_cursor_v2(CursorMoveV2::Back);
+        if let Some((i, c)) = self.text.as_str().char_indices().nth(self.cursor_v2 - 1) {
+            self.text.splice(i, c.len_utf8() as isize, "");
+            self.cursor_v2 -= 1;
 
-        true
+            self.push_history_v2(EditKindV2::DeleteChar(c), i);
+
+            true
+        } else {
+            false
+        }
     }
 
     /// Delete one character next to cursor. When the cursor is at end of line, the newline next to the cursor will be
@@ -1355,10 +1384,11 @@ impl<'a> TextArea<'a> {
     /// assert_eq!(textarea.lines(), [" bbb cccaaa"]);
     /// ```
     pub fn paste(&mut self) -> bool {
-        self.delete_selection(false);
+        self.delete_selection_v2(false);
         match self.yank.clone() {
-            YankText::Piece(s) => self.insert_piece(s),
-            YankText::Chunk(c) => self.insert_chunk(c),
+            YankText::Piece(s) => self.insert_piece_v2(s),
+            _ => unreachable!(),
+            // YankText::Chunk(c) => self.insert_chunk(c),
         }
     }
 
@@ -1540,18 +1570,24 @@ impl<'a> TextArea<'a> {
     /// assert_eq!(textarea.yank_text(), "World");
     /// assert_eq!(textarea.lines(), ["Hello World"]); // Text does not change
     /// ```
+    // pub fn copy(&mut self) {
+    //     if let Some((start, end)) = self.take_selection_positions() {
+    //         if start.row == end.row {
+    //             self.yank = self.lines[start.row][start.offset..end.offset]
+    //                 .to_string()
+    //                 .into();
+    //             return;
+    //         }
+    //         let mut chunk = vec![self.lines[start.row][start.offset..].to_string()];
+    //         chunk.extend(self.lines[start.row + 1..end.row].iter().cloned());
+    //         chunk.push(self.lines[end.row][..end.offset].to_string());
+    //         self.yank = YankText::Chunk(chunk);
+    //     }
+    // }
     pub fn copy(&mut self) {
-        if let Some((start, end)) = self.take_selection_positions() {
-            if start.row == end.row {
-                self.yank = self.lines[start.row][start.offset..end.offset]
-                    .to_string()
-                    .into();
-                return;
-            }
-            let mut chunk = vec![self.lines[start.row][start.offset..].to_string()];
-            chunk.extend(self.lines[start.row + 1..end.row].iter().cloned());
-            chunk.push(self.lines[end.row][..end.offset].to_string());
-            self.yank = YankText::Chunk(chunk);
+        if let Some((s, e)) = self.take_selection_positions_v2() {
+            let text = &self.text.as_str().to_string()[s..e];
+            self.yank = YankText::Piece(text.to_string());
         }
     }
 
@@ -1575,7 +1611,7 @@ impl<'a> TextArea<'a> {
     /// assert_eq!(textarea.lines(), ["Hello "]);
     /// ```
     pub fn cut(&mut self) -> bool {
-        self.delete_selection(true)
+        self.delete_selection_v2(true)
     }
 
     fn delete_selection(&mut self, should_yank: bool) -> bool {
@@ -1652,9 +1688,9 @@ impl<'a> TextArea<'a> {
     /// assert_eq!(textarea.lines(), ["abc def"]);
     /// ```
     pub fn undo(&mut self) -> bool {
-        if let Some(cursor) = self.history.undo(&mut self.lines) {
-            self.cancel_selection();
-            self.cursor = cursor;
+        if let Some(cursor) = self.history_v2.undo(&mut self.text) {
+            self.cancel_selection_v2();
+            self.cursor_v2 = cursor;
             true
         } else {
             false
@@ -1678,6 +1714,16 @@ impl<'a> TextArea<'a> {
         if let Some(cursor) = self.history.redo(&mut self.lines) {
             self.cancel_selection();
             self.cursor = cursor;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn redo_v2(&mut self) -> bool {
+        if let Some(cursor) = self.history_v2.redo(&mut self.text) {
+            self.cancel_selection_v2();
+            self.cursor_v2 = cursor;
             true
         } else {
             false
@@ -2180,6 +2226,14 @@ impl<'a> TextArea<'a> {
 
     pub fn cursor(&self) -> usize {
         self.cursor_v2
+    }
+
+    fn char_index(&self, nth: usize) -> usize {
+        let text = self.text.as_str();
+        text.char_indices()
+            .nth(nth)
+            .map(|(i, _)| i)
+            .unwrap_or(text.len())
     }
 
     /// Get the current selection range as a pair of the start position and the end position. The range is bounded

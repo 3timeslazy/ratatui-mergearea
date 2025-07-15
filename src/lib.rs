@@ -11,6 +11,7 @@ mod cursor;
 mod cursor_v2;
 mod highlight;
 mod history;
+mod history_v2;
 mod input;
 mod scroll;
 #[cfg(feature = "search")]

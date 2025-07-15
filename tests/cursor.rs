@@ -8,13 +8,17 @@ fn empty_textarea() {
 
     let mut t = TextArea::default();
     for m in [
-        Forward, Back, Up, Down, Head, End, Top,
+        Forward,
+        Back,
+        Up,
+        Down,
+        Head,
+        End,
+        Top,
         Bottom,
-        // WordForward,
-        // WordEnd,
-        // WordBack,
-        // ParagraphForward,
-        // ParagraphBack,
+        WordForward,
+        WordEnd,
+        WordBack,
         // Jump(0, 0),
         // Jump(u16::MAX, u16::MAX),
     ] {
@@ -102,49 +106,6 @@ fn back() {
     }
 }
 
-// #[test]
-// fn up() {
-//     for (text, positions, init_offset) in [
-//         // don't move if on the first line
-//         ("", &[0][..], 0),
-//         ("a", &[0][..], 0),
-//         ("a", &[1][..], 1),
-//         ("ab", &[1][..], 1),
-//         ("ab", &[2][..], 2),
-//         ("a\n", &[1][..], 1),
-//         ("a\n", &[0][..], 2),
-//         // move up in the the same column
-//         ("a\nb", &[0][..], 2),
-//         ("a\nbc", &[0][..], 2),
-//         ("a\nb\nc", &[2, 0][..], 4),
-//         ("ab\ncd", &[1][..], 4),
-//         // move from eol to eol
-//         ("a\nb", &[1][..], 3),
-//         ("a\nb\n", &[2, 0][..], 4),
-//         ("\n\n", &[1, 0][..], 2),
-//         ("\n\n\n", &[1, 0][..], 2),
-//         ("ab\ncd", &[2][..], 5),
-//         // moving from longer line to shorter line
-//         ("a\nbc", &[1][..], 3),
-//         ("a\nbc", &[1][..], 4),
-//         // moving from shorter line to longer line
-//         ("ab\nc", &[0][..], 3),
-//         ("ab\nc", &[1][..], 4),
-//         // Unicode
-//         ("й\nу\n𝑥", &[2, 0][..], 4),
-//         ("🐶\n🐱", &[0][..], 2),
-//     ] {
-//         let at = autosurgeon::Text::from(text);
-//         let mut t = TextArea::new(at.clone());
-//         t.cursor_v2 = init_offset;
-
-//         for pos in positions {
-//             t.move_cursor_v2(CursorMoveV2::Up);
-//             assert_eq!(t.cursor_v2, *pos);
-//         }
-//     }
-// }
-
 #[test]
 fn up() {
     for text in [["abc", "def", "ghi"], ["あいう", "🐶🐱🐰", "👪🤟🏿👩🏻‍❤️‍💋‍👨🏾"]]
@@ -178,52 +139,6 @@ fn up_trim() {
         }
     }
 }
-
-// #[test]
-// fn down() {
-//     for (text, positions, init_offset) in [
-//         // don't move if on the first line
-//         ("", &[0][..], 0),
-//         ("a", &[0][..], 0),
-//         ("a", &[1][..], 1),
-//         ("ab", &[1][..], 1),
-//         ("ab", &[2][..], 2),
-//         // move down in the the same column
-//         ("a\n", &[2][..], 1),
-//         ("a\nb", &[2][..], 0),
-//         ("a\nbc", &[2][..], 0),
-//         ("a\nb\nc", &[2, 4][..], 0),
-//         ("ab\ncd", &[4][..], 1),
-//         // move from eol to eol
-//         ("a\nb", &[3][..], 1),
-//         ("a\nb\n", &[3, 4][..], 1),
-//         ("\n\n", &[1, 2][..], 0),
-//         ("ab\ncd", &[5][..], 2),
-//         ("ab\nc\n", &[4][..], 2),
-//         // moving from longer line to shorter line
-//         ("ab\nc", &[4][..], 2),
-//         ("ab\nc", &[4][..], 1),
-//         // moving from shorter line to longer line
-//         ("a\nbc", &[2][..], 0),
-//         ("a\nbc", &[3][..], 1),
-//         // // Unicode
-//         ("й\nу\n𝑥", &[2, 4][..], 0),
-//         ("🐶\n🐱", &[2][..], 0),
-//     ] {
-//         let mut t = TextArea::with_value(text);
-//         t.cursor_v2 = init_offset;
-
-//         for i in 0..positions.len() {
-//             t.move_cursor_v2(CursorMove::Down);
-//             assert_eq!(
-//                 t.cursor_v2,
-//                 positions[i],
-//                 "{:?} {positions:?} {init_offset}",
-//                 text.chars().collect::<Vec<char>>()
-//             );
-//         }
-//     }
-// }
 
 #[test]
 fn down() {
@@ -372,56 +287,109 @@ fn bottom_trim() {
     }
 }
 
-// #[test]
-// fn word_end() {
-//     for (lines, positions) in [
-//         (
-//             &[
-//                 "aaa !!! bbb", // Consecutive punctuations are a word
-//             ][..],
-//             &[(0, 2), (0, 6), (0, 10)][..],
-//         ),
-//         (
-//             &[
-//                 "aaa!!!bbb", // Word boundaries without spaces
-//             ][..],
-//             &[(0, 2), (0, 5), (0, 8)][..],
-//         ),
-//         (
-//             &[
-//                 "aaa", "", "", "bbb", // Go across multiple empty lines (regression of #75)
-//             ][..],
-//             &[(0, 2), (3, 2)][..],
-//         ),
-//         (
-//             &[
-//                 "aaa", "   ", "   ", "bbb", // Go across multiple blank lines
-//             ][..],
-//             &[(0, 2), (3, 2)][..],
-//         ),
-//         (
-//             &[
-//                 "   aaa", "   bbb", // Ignore the spaces at the head of line
-//             ][..],
-//             &[(0, 5), (1, 5)][..],
-//         ),
-//         (
-//             &[
-//                 "aaa   ", "bbb   ", // Ignore the spaces at the end of line
-//             ][..],
-//             &[(0, 2), (1, 2), (1, 6)][..],
-//         ),
-//         (
-//             &[
-//                 "a aa", "b!!!", // Accept the head of line (regression of #75)
-//             ][..],
-//             &[(0, 3), (1, 0), (1, 3)][..],
-//         ),
-//     ] {
-//         let mut t: TextArea = lines.iter().cloned().collect();
-//         for pos in positions {
-//             t.move_cursor(CursorMove::WordEnd);
-//             assert_eq!(t.cursor(), *pos, "{:?}", t.lines());
-//         }
-//     }
-// }
+#[test]
+fn word_end() {
+    for (lines, positions) in [
+        (
+            &[
+                "aaa !!! bbb", // Consecutive punctuation is a word
+            ][..],
+            &[(0, 2), (0, 6), (0, 10)][..],
+        ),
+        (
+            &[
+                "aaa!!!bbb", // Word boundaries without spaces
+            ][..],
+            &[(0, 2), (0, 5), (0, 8)][..],
+        ),
+        (
+            &[
+                "aaa", "", "", "bbb", // Go across multiple empty lines (regression of #75)
+            ][..],
+            &[(0, 2), (3, 2)][..],
+        ),
+        (
+            &[
+                "aaa", "   ", "   ", "bbb", // Go across multiple blank lines
+            ][..],
+            &[(0, 2), (3, 2)][..],
+        ),
+        (
+            &[
+                "   aaa", "   bbb", // Ignore the spaces at the head of line
+            ][..],
+            &[(0, 5), (1, 5)][..],
+        ),
+        (
+            &[
+                "aaa   ", "bbb   ", // Ignore the spaces at the end of line
+            ][..],
+            &[(0, 2), (1, 2), (1, 6)][..],
+        ),
+        (
+            &[
+                "a aa", "b!!!", // Accept the head of line (regression of #75)
+            ][..],
+            &[(0, 3), (1, 0), (1, 3)][..],
+        ),
+        (&["aaa йу𝑥 🐶🐱"][..], &[(0, 2), (0, 6), (0, 9)][..]),
+    ] {
+        let mut t = TextArea::with_value(lines.join("\n"));
+        for pos in positions {
+            t.move_cursor_v2(CursorMove::WordEnd);
+            assert_eq!(t.cursor2(), *pos, "{:?}", t.text());
+        }
+    }
+}
+
+#[test]
+fn word_back() {
+    for (lines, positions) in [
+        (
+            &[
+                "aaa !!! bbb", // Consecutive punctuations are a word
+            ][..],
+            &[(0, 8), (0, 4), (0, 0)][..],
+        ),
+        (
+            &[
+                "aaa!!!bbb", // Word boundaries without spaces
+            ][..],
+            &[(0, 6), (0, 3), (0, 0)][..],
+        ),
+        (
+            &[
+                "aaa", "", "", "bbb", // Go across multiple empty lines (regression of #75)
+            ][..],
+            &[(3, 0), (0, 0)][..],
+        ),
+        (
+            &[
+                "aaa", "   ", "   ", "bbb", // Go across multiple blank lines
+            ][..],
+            &[(3, 0), (0, 0)][..],
+        ),
+        (
+            &[
+                "   aaa", "   bbb", // Ignore the spaces at the head of line
+            ][..],
+            &[(1, 3), (0, 3)][..],
+        ),
+        (
+            &[
+                "aaa   ", "bbb   ", // Ignore the spaces at the end of line
+            ][..],
+            &[(1, 0), (0, 0)][..],
+        ),
+        (&["a aa", "b!!!"][..], &[(1, 1), (0, 2), (0, 0)][..]),
+        (&["aaa йу𝑥 🐶🐱"][..], &[(0, 8), (0, 4), (0, 0)][..]),
+    ] {
+        let mut t = TextArea::with_value(lines.join("\n"));
+        t.move_cursor_v2(CursorMove::Jump(u16::MAX, u16::MAX));
+
+        for pos in positions {
+            t.move_cursor_v2(CursorMove::WordBack);
+            assert_eq!(t.cursor2(), *pos, "{:?}", t.text());
+        }
+    }
+}
