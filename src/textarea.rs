@@ -13,13 +13,10 @@ use crate::search::Search;
 use crate::util::{self, spaces, Pos};
 use crate::widget::Viewport;
 use crate::word::{find_word_exclusive_end_forward, find_word_start_backward};
-#[cfg(feature = "ratatui")]
 use ratatui::text::Line;
 use std::cmp::{self, Ordering};
 use std::fmt;
 use std::ops::Deref;
-#[cfg(feature = "tuirs")]
-use tui::text::Spans as Line;
 use unicode_width::UnicodeWidthChar as _;
 
 #[derive(Debug, Clone)]

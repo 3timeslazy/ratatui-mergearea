@@ -1,13 +1,10 @@
 use crate::ratatui::style::Style;
 use crate::ratatui::text::Span;
 use crate::util::{self, num_digits, spaces};
-#[cfg(feature = "ratatui")]
 use ratatui::text::Line;
 use std::borrow::Cow;
 use std::cmp::{self, Ordering};
 use std::iter;
-#[cfg(feature = "tuirs")]
-use tui::text::Spans as Line;
 use unicode_width::UnicodeWidthChar as _;
 
 enum Boundary {
@@ -287,7 +284,7 @@ impl<'a> LineHighlighter<'a> {
 }
 
 // Tests for spans don't work with tui-rs
-#[cfg(all(test, feature = "ratatui"))]
+#[test]
 mod tests {
     use super::*;
     use crate::ratatui::style::Color;

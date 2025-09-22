@@ -43,13 +43,6 @@ impl From<KeyEvent> for Input {
             _ => (false, false, false),
         };
 
-        #[cfg(feature = "tuirs-termion")]
-        let (ctrl, alt, shift) = match key {
-            KeyEvent::Ctrl(_) => (true, false, false),
-            KeyEvent::Alt(_) => (false, true, false),
-            _ => (false, false, false),
-        };
-
         #[cfg(feature = "termion")]
         let key = match key {
             KeyEvent::Char('\n' | '\r') => Key::Enter,
@@ -67,26 +60,6 @@ impl From<KeyEvent> for Input {
             }
             KeyEvent::Home | KeyEvent::CtrlHome => Key::Home,
             KeyEvent::End | KeyEvent::CtrlEnd => Key::End,
-            KeyEvent::PageUp => Key::PageUp,
-            KeyEvent::PageDown => Key::PageDown,
-            KeyEvent::BackTab => Key::Tab,
-            KeyEvent::Delete => Key::Delete,
-            KeyEvent::Esc => Key::Esc,
-            KeyEvent::F(x) => Key::F(x),
-            _ => Key::Null,
-        };
-
-        #[cfg(feature = "tuirs-termion")]
-        let key = match key {
-            KeyEvent::Char('\n' | '\r') => Key::Enter,
-            KeyEvent::Char(c) | KeyEvent::Ctrl(c) | KeyEvent::Alt(c) => Key::Char(c),
-            KeyEvent::Backspace => Key::Backspace,
-            KeyEvent::Left => Key::Left,
-            KeyEvent::Right => Key::Right,
-            KeyEvent::Up => Key::Up,
-            KeyEvent::Down => Key::Down,
-            KeyEvent::Home => Key::Home,
-            KeyEvent::End => Key::End,
             KeyEvent::PageUp => Key::PageUp,
             KeyEvent::PageDown => Key::PageDown,
             KeyEvent::BackTab => Key::Tab,

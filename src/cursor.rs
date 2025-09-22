@@ -370,33 +370,3 @@ impl CursorMove {
         }
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     // Separate tests for tui-rs support
-//     #[test]
-//     fn in_viewport() {
-//         use crate::ratatui::buffer::Buffer;
-//         use crate::ratatui::layout::Rect;
-//         use crate::ratatui::widgets::Widget as _;
-//         use crate::{CursorMove, TextArea};
-
-//         let mut textarea = TextArea::new(autosurgeon::Text::with_value(
-//             (0..20).map(|i| i.to_string()).collect::<String>(),
-//         ));
-//         let r = Rect {
-//             x: 0,
-//             y: 0,
-//             width: 24,
-//             height: 8,
-//         };
-//         let mut b = Buffer::empty(r);
-//         textarea.render(r, &mut b);
-
-//         textarea.move_cursor(CursorMove::Bottom);
-//         assert_eq!(textarea.cursor_v2(), 20);
-
-//         textarea.move_cursor(CursorMove::InViewport);
-//         assert_eq!(textarea.cursor(), (7, 0));
-//     }
-// }
