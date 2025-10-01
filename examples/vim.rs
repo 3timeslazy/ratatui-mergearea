@@ -170,7 +170,7 @@ impl Vim {
                         ctrl: true,
                         ..
                     } => {
-                        textarea.redo();
+                        textarea.redo_v2();
                         return Transition::Mode(Mode::Normal);
                     }
                     Input {
@@ -420,7 +420,7 @@ fn main() -> io::Result<()> {
 
     ratatui::restore();
 
-    println!("Lines: {:?}", textarea.lines());
+    println!("Lines: {:?}", textarea.text().as_str());
 
     Ok(())
 }

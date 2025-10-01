@@ -8,7 +8,7 @@ use ratatui::style::{Color, Style};
 use ratatui::widgets::{Block, Borders};
 use ratatui::Terminal;
 use std::io;
-use tui_textarea::{Input, Key, TextArea};
+use ratatui_mergearea::{Input, Key, TextArea};
 
 fn main() -> io::Result<()> {
     let stdout = io::stdout();
@@ -55,6 +55,6 @@ fn main() -> io::Result<()> {
     )?;
     term.show_cursor()?;
 
-    println!("Input: {:?}", textarea.lines()[0]);
+    println!("Input: {:?}", textarea.text().as_str());
     Ok(())
 }

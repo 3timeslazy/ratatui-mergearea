@@ -44,6 +44,6 @@ fn main() -> io::Result<()> {
     )?;
     term.show_cursor()?;
 
-    println!("Lines: {:?}", textarea.lines());
+    println!("Lines: {:?}", textarea.text().as_str());
     Ok(())
 }
