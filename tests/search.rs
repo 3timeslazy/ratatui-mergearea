@@ -1,6 +1,6 @@
 #![cfg(feature = "search")]
 
-use tui_textarea::{CursorMove, TextArea};
+use ratatui_mergearea::{CursorMove, TextArea};
 
 // #[test]
 // fn search_lines_forward() {
