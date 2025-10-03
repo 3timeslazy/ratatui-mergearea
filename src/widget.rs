@@ -6,6 +6,7 @@ use crate::textarea::TextArea;
 use crate::util::{self, num_digits};
 use ratatui::text::Line;
 use std::cmp;
+use std::ops::Index;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 // &mut 'a (u16, u16, u16, u16) is not available since `render` method takes immutable reference of TextArea
@@ -90,13 +91,7 @@ fn next_scroll_top(prev_top: u16, cursor: u16, len: u16) -> u16 {
 
 impl<'a> TextArea<'a> {
     fn text_widget(&'a self, top_row: usize, height: usize) -> Text<'a> {
-        let text = self.text().as_str();
-        let mut text_lines = text.lines().collect::<Vec<&str>>();
-
-        // TODO: this line fixes cursor not being
-        // rendered when it's on the last position,
-        // but panic when selecting text
-        // text_lines.push("");
+        let text_lines = self.text().as_str().split("\n").collect::<Vec<&str>>();
 
         let lines_len = text_lines.len();
         let lnum_len = num_digits(lines_len);

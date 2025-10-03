@@ -1526,6 +1526,7 @@ impl<'a> TextArea<'a> {
         }
     }
 
+    // Get selection positions in chars
     fn selection_positions_v2(&self) -> Option<(usize, usize)> {
         let s = self.selection_start_v2?;
         let e = self.cursor_v2;
@@ -1756,7 +1757,7 @@ impl<'a> TextArea<'a> {
                 line_start,
                 &self.text.as_str().chars().collect::<Vec<char>>(),
             );
-            hl.selection_v2(line_start, line_end, start, end);
+            hl.selection(line_start, line_end, start, end);
         }
 
         hl.into_spans()

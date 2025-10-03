@@ -155,36 +155,6 @@ impl<'a> LineHighlighter<'a> {
 
     pub fn selection(
         &mut self,
-        current_row: usize,
-        start_row: usize,
-        start_off: usize,
-        end_row: usize,
-        end_off: usize,
-    ) {
-        let (start, end) = if current_row == start_row {
-            if start_row == end_row {
-                (start_off, end_off)
-            } else {
-                self.select_at_end = true;
-                (start_off, self.line.len())
-            }
-        } else if current_row == end_row {
-            (0, end_off)
-        } else if start_row < current_row && current_row < end_row {
-            self.select_at_end = true;
-            (0, self.line.len())
-        } else {
-            return;
-        };
-        if start != end {
-            self.boundaries
-                .push((Boundary::Select(self.select_style), start));
-            self.boundaries.push((Boundary::End, end));
-        }
-    }
-
-    pub fn selection_v2(
-        &mut self,
         line_start: usize,
         line_end: usize,
         sel_start: usize,
@@ -208,7 +178,7 @@ impl<'a> LineHighlighter<'a> {
         let start = sel_start.saturating_sub(line_start);
 
         let end = if sel_end > line_end {
-            line_end - line_start + 1
+            line_end + 1 - line_start
         } else {
             sel_end - line_start
         };
@@ -283,8 +253,7 @@ impl<'a> LineHighlighter<'a> {
     }
 }
 
-// Tests for spans don't work with tui-rs
-#[test]
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::ratatui::style::Color;
