@@ -1024,7 +1024,7 @@ impl<'a> TextArea<'a> {
             .sum();
 
         let len = self.tab_len - (width % self.tab_len as usize) as u8;
-        self.insert_piece_v2(spaces(len).to_string())
+        self.insert_piece(spaces(len).to_string())
     }
 
     /// Insert a newline at current cursor position.
