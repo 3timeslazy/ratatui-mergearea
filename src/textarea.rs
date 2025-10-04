@@ -290,7 +290,7 @@ impl<'a> TextArea<'a> {
                 ctrl: false,
                 alt: false,
                 ..
-            } => self.delete_char_v2(),
+            } => self.delete_char(),
 
             // Delete next char
             Input {
@@ -678,7 +678,7 @@ impl<'a> TextArea<'a> {
             Input {
                 key: Key::Backspace,
                 ..
-            } => self.delete_char_v2(),
+            } => self.delete_char(),
             Input {
                 key: Key::Delete, ..
             } => self.delete_next_char(),
@@ -1022,40 +1022,15 @@ impl<'a> TextArea<'a> {
     /// removed. This method returns if some text was deleted or not in the textarea. When some text is selected, it is
     /// deleted instead.
     /// ```
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::from(["abc"]);
+    /// let mut textarea = TextArea::with_value("abc");
     ///
     /// textarea.move_cursor(CursorMove::Forward);
     /// textarea.delete_char();
-    /// assert_eq!(textarea.lines(), ["bc"]);
+    /// assert_eq!(textarea.text().as_str(), "bc");
     /// ```
     pub fn delete_char(&mut self) -> bool {
-        if self.delete_selection(false) {
-            return true;
-        }
-
-        let (row, col) = self.cursor;
-        if col == 0 {
-            return self.delete_newline();
-        }
-
-        let line = &mut self.lines[row];
-        if let Some((offset, c)) = line.char_indices().nth(col - 1) {
-            line.remove(offset);
-            self.cursor.1 -= 1;
-            self.push_history(
-                EditKind::DeleteChar(c),
-                Pos::new(row, col, offset + c.len_utf8()),
-                offset,
-            );
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn delete_char_v2(&mut self) -> bool {
         if self.delete_selection_v2(false) {
             return true;
         }
@@ -1098,7 +1073,7 @@ impl<'a> TextArea<'a> {
             return false;
         }
 
-        self.delete_char_v2()
+        self.delete_char()
     }
 
     /// Delete string from cursor to end of the line. When the cursor is at end of line, the newline next to the cursor
