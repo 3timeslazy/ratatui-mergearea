@@ -752,84 +752,24 @@ impl<'a> TextArea<'a> {
     /// Insert a string at current cursor position. This method returns if some text was inserted or not in the textarea.
     /// Both `\n` and `\r\n` are recognized as newlines but `\r` isn't.
     /// ```
-    /// use tui_textarea::TextArea;
+    /// use ratatui_mergearea::TextArea;
     ///
     /// let mut textarea = TextArea::default();
     ///
     /// textarea.insert_str("hello");
-    /// assert_eq!(textarea.lines(), ["hello"]);
+    /// assert_eq!(textarea.text().as_str(), "hello");
     ///
     /// textarea.insert_str(", world\ngoodbye, world");
-    /// assert_eq!(textarea.lines(), ["hello, world", "goodbye, world"]);
+    /// assert_eq!(textarea.text().as_str(), "hello, world\ngoodbye, world");
     /// ```
     pub fn insert_str<S: AsRef<str>>(&mut self, s: S) -> bool {
-        let modified = self.delete_selection(false);
-        let mut lines: Vec<_> = s
-            .as_ref()
-            .split('\n')
-            .map(|s| s.strip_suffix('\r').unwrap_or(s).to_string())
-            .collect();
-        match lines.len() {
-            0 => modified,
-            1 => self.insert_piece(lines.remove(0)),
-            _ => self.insert_chunk(lines),
-        }
-    }
+        let deleted = self.delete_selection_v2(false);
+        let inserted = self.insert_piece(s.as_ref().to_string());
 
-    fn insert_chunk(&mut self, chunk: Vec<String>) -> bool {
-        debug_assert!(chunk.len() > 1, "Chunk size must be > 1: {:?}", chunk);
-
-        let (row, col) = self.cursor;
-        let line = &mut self.lines[row];
-        let i = line
-            .char_indices()
-            .nth(col)
-            .map(|(i, _)| i)
-            .unwrap_or(line.len());
-        let before = Pos::new(row, col, i);
-
-        let (row, col) = (
-            row + chunk.len() - 1,
-            chunk[chunk.len() - 1].chars().count(),
-        );
-        self.cursor = (row, col);
-
-        let end_offset = chunk.last().unwrap().len();
-
-        let edit = EditKind::InsertChunk(chunk);
-        edit.apply(&mut self.lines, &before, &Pos::new(row, col, end_offset));
-
-        self.push_history(edit, before, end_offset);
-        true
+        deleted || inserted
     }
 
     fn insert_piece(&mut self, s: String) -> bool {
-        if s.is_empty() {
-            return false;
-        }
-
-        let (row, col) = self.cursor;
-        let line = &mut self.lines[row];
-        debug_assert!(
-            !s.contains('\n'),
-            "string given to TextArea::insert_piece must not contain newline: {:?}",
-            line,
-        );
-
-        let i = line
-            .char_indices()
-            .nth(col)
-            .map(|(i, _)| i)
-            .unwrap_or(line.len());
-        line.insert_str(i, &s);
-        let end_offset = i + s.len();
-
-        self.cursor.1 += s.chars().count();
-        self.push_history(EditKind::InsertStr(s), Pos::new(row, col, i), end_offset);
-        true
-    }
-
-    fn insert_piece_v2(&mut self, s: String) -> bool {
         if s.is_empty() {
             return false;
         }
@@ -1383,7 +1323,7 @@ impl<'a> TextArea<'a> {
     pub fn paste(&mut self) -> bool {
         self.delete_selection_v2(false);
         match self.yank.clone() {
-            YankText::Piece(s) => self.insert_piece_v2(s),
+            YankText::Piece(s) => self.insert_piece(s),
             _ => unreachable!(),
             // YankText::Chunk(c) => self.insert_chunk(c),
         }
@@ -1477,12 +1417,6 @@ impl<'a> TextArea<'a> {
             .nth(col)
             .map(|(i, _)| i)
             .unwrap_or(line.len())
-    }
-
-    fn line_offset_v2(&self, offset: usize) -> usize {
-        let chars = self.text.as_str().chars().collect::<Vec<char>>();
-        let line_start = util::find_line_start(offset, &chars);
-        offset - line_start
     }
 
     /// Set the style used for text selection. The default style is light blue.
