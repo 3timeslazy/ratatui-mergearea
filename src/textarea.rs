@@ -1,5 +1,4 @@
 use crate::cursor::CursorMove;
-use crate::cursor_v2::CursorMove as CursorMoveV2;
 use crate::highlight::LineHighlighter;
 use crate::history::{Edit, EditKind, History};
 use crate::history_v2::{Edit as EditV2, EditKind as EditKindV2, History as HistoryV2};
@@ -367,7 +366,7 @@ impl<'a> TextArea<'a> {
                 alt: false,
                 shift,
             } => {
-                self.move_cursor_with_shift_v2(CursorMoveV2::Down, shift);
+                self.move_cursor_with_shift(CursorMove::Down, shift);
                 false
             }
 
@@ -384,7 +383,7 @@ impl<'a> TextArea<'a> {
                 alt: false,
                 shift,
             } => {
-                self.move_cursor_with_shift_v2(CursorMoveV2::Up, shift);
+                self.move_cursor_with_shift(CursorMove::Up, shift);
                 false
             }
 
@@ -401,7 +400,7 @@ impl<'a> TextArea<'a> {
                 alt: false,
                 shift,
             } => {
-                self.move_cursor_with_shift_v2(CursorMoveV2::Forward, shift);
+                self.move_cursor_with_shift(CursorMove::Forward, shift);
                 false
             }
 
@@ -418,7 +417,7 @@ impl<'a> TextArea<'a> {
                 alt: false,
                 shift,
             } => {
-                self.move_cursor_with_shift_v2(CursorMoveV2::Back, shift);
+                self.move_cursor_with_shift(CursorMove::Back, shift);
                 false
             }
 
@@ -439,7 +438,7 @@ impl<'a> TextArea<'a> {
                 alt: true,
                 shift,
             } => {
-                self.move_cursor_with_shift_v2(CursorMoveV2::Head, shift);
+                self.move_cursor_with_shift(CursorMove::Head, shift);
                 false
             }
 
@@ -461,7 +460,7 @@ impl<'a> TextArea<'a> {
                 alt: true,
                 shift,
             } => {
-                self.move_cursor_with_shift_v2(CursorMoveV2::End, shift);
+                self.move_cursor_with_shift(CursorMove::End, shift);
                 false
             }
 
@@ -477,7 +476,7 @@ impl<'a> TextArea<'a> {
                 alt: true,
                 shift,
             } => {
-                self.move_cursor_with_shift_v2(CursorMoveV2::Top, shift);
+                self.move_cursor_with_shift(CursorMove::Top, shift);
                 false
             }
 
@@ -493,7 +492,7 @@ impl<'a> TextArea<'a> {
                 alt: true,
                 shift,
             } => {
-                self.move_cursor_with_shift_v2(CursorMoveV2::Bottom, shift);
+                self.move_cursor_with_shift(CursorMove::Bottom, shift);
                 false
             }
 
@@ -509,7 +508,7 @@ impl<'a> TextArea<'a> {
                 alt: false,
                 shift,
             } => {
-                self.move_cursor_with_shift_v2(CursorMoveV2::WordForward, shift);
+                self.move_cursor_with_shift(CursorMove::WordForward, shift);
                 false
             }
 
@@ -525,7 +524,7 @@ impl<'a> TextArea<'a> {
                 alt: false,
                 shift,
             } => {
-                self.move_cursor_with_shift_v2(CursorMoveV2::WordBack, shift);
+                self.move_cursor_with_shift(CursorMove::WordBack, shift);
                 false
             }
 
@@ -741,7 +740,7 @@ impl<'a> TextArea<'a> {
             .map(|(i, _)| i)
             .unwrap_or_else(|| text.len());
         self.text.splice(pos, 0, c.to_string());
-        self.move_cursor_v2(CursorMoveV2::Forward);
+        self.move_cursor(CursorMove::Forward);
 
         self.push_history_v2(EditKindV2::InsertChar(c), pos);
     }
@@ -981,7 +980,7 @@ impl<'a> TextArea<'a> {
         let pos = self.cursor_v2;
         // TODO: calculate possition properly
         self.text.splice(self.cursor_v2, 0, "\n");
-        self.move_cursor_v2(CursorMoveV2::Forward);
+        self.move_cursor(CursorMove::Forward);
 
         // TODO
         self.push_history_v2(EditKindV2::InsertNewline, pos);
@@ -1068,7 +1067,7 @@ impl<'a> TextArea<'a> {
         }
 
         let before = self.cursor_v2;
-        self.move_cursor_with_shift_v2(CursorMoveV2::Forward, false);
+        self.move_cursor_with_shift(CursorMove::Forward, false);
         if before == self.cursor_v2 {
             return false;
         }
@@ -1296,7 +1295,7 @@ impl<'a> TextArea<'a> {
     /// assert_eq!(textarea.yank_text(), "aaa\nbbb\nccc");
     /// ```
     pub fn select_all(&mut self) {
-        self.move_cursor_v2(CursorMoveV2::Jump(u16::MAX, u16::MAX));
+        self.move_cursor(CursorMove::Jump(u16::MAX, u16::MAX));
         self.selection_start_v2 = Some(0);
     }
 
@@ -1483,27 +1482,10 @@ impl<'a> TextArea<'a> {
     /// assert_eq!(textarea.cursor(), (1, 1));
     /// ```
     pub fn move_cursor(&mut self, m: CursorMove) {
-        self.move_cursor_with_shift(m, self.selection_start.is_some());
+        self.move_cursor_with_shift(m, self.selection_start_v2.is_some());
     }
 
-    pub fn move_cursor_v2(&mut self, m: CursorMoveV2) {
-        self.move_cursor_with_shift_v2(m, self.selection_start_v2.is_some());
-    }
-
-    fn move_cursor_with_shift(&mut self, m: CursorMove, shift: bool) {
-        if let Some(cursor) = m.next_cursor(self.cursor, &self.lines, &self.viewport) {
-            if shift {
-                if self.selection_start.is_none() {
-                    self.start_selection();
-                }
-            } else {
-                self.cancel_selection();
-            }
-            self.cursor = cursor;
-        }
-    }
-
-    pub fn move_cursor_with_shift_v2(&mut self, m: CursorMoveV2, shift: bool) {
+    pub fn move_cursor_with_shift(&mut self, m: CursorMove, shift: bool) {
         if let Some(cursor) = m.next_cursor(self.cursor_v2, &self.text, &self.viewport) {
             if shift {
                 if self.selection_start_v2.is_none() {
@@ -2448,6 +2430,6 @@ impl<'a> TextArea<'a> {
             self.selection_start_v2 = Some(self.cursor_v2);
         }
         scrolling.scroll(&mut self.viewport);
-        self.move_cursor_with_shift_v2(CursorMoveV2::InViewport, shift);
+        self.move_cursor_with_shift(CursorMove::InViewport, shift);
     }
 }

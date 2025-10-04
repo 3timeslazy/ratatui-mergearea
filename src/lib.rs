@@ -5,7 +5,6 @@
 #![doc = include_str!("../README.md")]
 
 mod cursor;
-mod cursor_v2;
 mod highlight;
 mod history;
 mod history_v2;
@@ -29,7 +28,6 @@ use crossterm;
 #[allow(clippy::single_component_path_imports)]
 use termion;
 
-pub use cursor_v2::CursorMove as CursorMoveV2;
 pub use cursor::CursorMove;
 pub use input::{Input, Key};
 pub use scroll::Scrolling;

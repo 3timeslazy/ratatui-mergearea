@@ -1,4 +1,4 @@
-use ratatui_mergearea::{CursorMoveV2 as CursorMove, TextArea};
+use ratatui_mergearea::{CursorMove, TextArea};
 use std::cmp;
 use std::fmt::Debug;
 
@@ -55,7 +55,7 @@ fn test_insert_soft_tab() {
     ] {
         let (input, col, expected, width) = test;
         let mut t = TextArea::with_value(input);
-        t.move_cursor_v2(CursorMove::Jump(0, col));
+        t.move_cursor(CursorMove::Jump(0, col));
         assert!(t.insert_tab(), "{test:?}");
         assert_eq!(t.text().as_str(), expected, "{test:?}");
         assert_eq!(t.cursor2(), (0, col as usize + width), "{test:?}");
@@ -93,7 +93,7 @@ fn test_insert_char() {
     for test in tests {
         let (col, ch, want) = test;
         let mut t = TextArea::with_value("ab");
-        t.move_cursor_v2(CursorMove::Jump(0, col));
+        t.move_cursor(CursorMove::Jump(0, col));
         t.insert_char(ch);
         assert_eq!(t.text().as_str(), want, "{test:?}");
         let pos = if ch == '\n' {
@@ -110,7 +110,7 @@ fn test_insert_char() {
 fn test_insert_str_one_line() {
     for i in 0..="ab".len() {
         let mut t = TextArea::with_value("ab");
-        t.move_cursor_v2(CursorMove::Jump(0, i as u16));
+        t.move_cursor(CursorMove::Jump(0, i as u16));
         assert!(t.insert_str("x"), "{i}");
 
         let mut want = "ab".to_string();
@@ -608,7 +608,7 @@ fn test_insert_str_multiple_lines() {
 
         let mut t = TextArea::with_value(&before);
         let (row, col) = before_pos;
-        t.move_cursor_v2(CursorMove::Jump(row as _, col as _));
+        t.move_cursor(CursorMove::Jump(row as _, col as _));
 
         assert!(t.insert_str(input), "{test:?}");
         assert_eq!(t.text().as_str(), expected, "{test:?}");
@@ -635,7 +635,7 @@ fn test_delete_str_within_line() {
     for i in 0.."abc".len() {
         for j in 1..="abc".len() - i {
             let mut t = TextArea::with_value("abc");
-            t.move_cursor_v2(CursorMove::Jump(0, i as _));
+            t.move_cursor(CursorMove::Jump(0, i as _));
             assert!(t.delete_str(j), "at {i}, size={j}");
 
             let mut want = "abc".to_string();
@@ -931,7 +931,7 @@ fn test_delete_str_multiple_lines() {
         let after = after.join("\n");
 
         let mut t = TextArea::with_value(&before);
-        t.move_cursor_v2(CursorMove::Jump(row as _, col as _));
+        t.move_cursor(CursorMove::Jump(row as _, col as _));
 
         assert!(t.delete_str(chars), "{test:?}");
         assert_eq!(t.cursor2(), (row, col), "{test:?}");
@@ -953,9 +953,9 @@ fn test_copy_single_line() {
         for j in i.."abc".len() {
             let mut t = TextArea::with_value("abc");
 
-            t.move_cursor_v2(CursorMove::Jump(0, i as u16));
+            t.move_cursor(CursorMove::Jump(0, i as u16));
             t.start_selection_v2();
-            t.move_cursor_v2(CursorMove::Jump(0, j as u16));
+            t.move_cursor(CursorMove::Jump(0, j as u16));
             t.copy();
 
             assert_eq!(t.yank_text(), &"abc"[i..j], "from {i} to {j}");
@@ -970,10 +970,10 @@ fn test_copy_single_line() {
 // fn test_cut_single_line() {
 //     for i in 0.."abc".len() {
 //         for j in i + 1.."abc".len() {
-//             let mut t = TextArea::from(["abc"]);
+//             let mut t = TextArea::with_value("abc");
 
 //             t.move_cursor(CursorMove::Jump(0, i as u16));
-//             t.start_selection();
+//             t.start_selection_v2();
 //             t.move_cursor(CursorMove::Jump(0, j as u16));
 //             t.cut();
 
@@ -982,13 +982,13 @@ fn test_copy_single_line() {
 //             let mut after = "abc".to_string();
 //             after.replace_range(i..j, "");
 //             let after = after.as_str();
-//             assert_eq!(t.lines(), [after], "from {i} to {j}");
-//             assert_eq!(t.cursor(), (0, i));
-//             assert_undo_redo((0, j), &["abc"], &[after], &mut t, (i, j));
+//             assert_eq!(t.text().as_str(), after, "from {i} to {j}");
+//             assert_eq!(t.cursor2(), (0, i));
+//             assert_undo_redo((0, j), "abc", after, &mut t, (i, j));
 
 //             t.paste();
-//             assert_eq!(t.lines(), ["abc"], "from {i} to {j}");
-//             assert_undo_redo((0, i), &[after], &["abc"], &mut t, (i, j));
+//             assert_eq!(t.text().as_str(), "abc", "from {i} to {j}");
+//             assert_undo_redo((0, i), after, "abc", &mut t, (i, j));
 //         }
 //     }
 // }
@@ -1349,9 +1349,9 @@ fn test_delete_selection_on_delete_operations() {
 
     for (n, f) in tests {
         let mut t = TextArea::new(autosurgeon::Text::with_value("ab\ncd\nef"));
-        t.move_cursor_v2(CursorMove::Jump(0, 1));
+        t.move_cursor(CursorMove::Jump(0, 1));
         t.start_selection_v2();
-        t.move_cursor_v2(CursorMove::Jump(2, 1));
+        t.move_cursor(CursorMove::Jump(2, 1));
 
         let modified = f(&mut t);
         assert!(modified, "{n}");
@@ -1394,9 +1394,9 @@ fn test_delete_selection_on_delete_edge_cases() {
 
     for (n, f, pos) in tests {
         let mut t = TextArea::with_value("ab\ncd\nef");
-        t.move_cursor_v2(CursorMove::Jump(1, 1));
+        t.move_cursor(CursorMove::Jump(1, 1));
         t.start_selection_v2();
-        t.move_cursor_v2(CursorMove::Jump(pos.0 as _, pos.1 as _));
+        t.move_cursor(CursorMove::Jump(pos.0 as _, pos.1 as _));
 
         assert!(f(&mut t), "{n}, {pos:?}");
         assert_eq!(t.cursor2(), cmp::min(pos, (1, 1)), "{n}, {pos:?}");
@@ -1429,9 +1429,9 @@ fn test_delete_selection_on_delete_edge_cases() {
 
 //     for (n, f, after) in tests {
 //         let mut t = TextArea::with_value("ab\ncd\nef");
-//         t.move_cursor_v2(CursorMove::Jump(0, 1));
+//         t.move_cursor(CursorMove::Jump(0, 1));
 //         t.start_selection_v2();
-//         t.move_cursor_v2(CursorMove::Jump(2, 1));
+//         t.move_cursor(CursorMove::Jump(2, 1));
 
 //         f(&mut t);
 //         assert_eq!(t.text().as_str(), after, "{n}");
@@ -1544,7 +1544,7 @@ fn test_select_all() {
 //         "🐶🐱🐰🐮🐹",
 //         ].join("\n"));
 
-//     assert_eq!(t.selection_range(), None);
+//     assert_eq!(t.selection_range_v2(), None);
 
 //     for (from, to) in [
 //         ((0, 0), (0, 0)),
@@ -1557,17 +1557,18 @@ fn test_select_all() {
 //         let (x, y) = from;
 //         t.move_cursor(CursorMove::Jump(x as _, y as _));
 
-//         t.start_selection();
+//         t.start_selection_v2();
 
 //         let (x, y) = to;
 //         t.move_cursor(CursorMove::Jump(x as _, y as _));
 
-//         let have = t.selection_range().unwrap();
+//         // TODO: select range with 2d index
+//         let have = t.selection_range_v2().unwrap();
 //         let want = if from <= to { (from, to) } else { (to, from) };
 //         assert_eq!(have, want, "selection from {from:?} to {to:?}");
 
-//         t.cancel_selection();
-//         let range = t.selection_range();
+//         t.cancel_selection_v2();
+//         let range = t.selection_range_v2();
 //         assert_eq!(range, None, "selection from {from:?} to {to:?}");
 //     }
 // }
@@ -1579,7 +1580,7 @@ impl DeleteTester {
         let (row, col) = before;
 
         let mut t = TextArea::with_value(buf_before);
-        t.move_cursor_v2(CursorMove::Jump(row as _, col as _));
+        t.move_cursor(CursorMove::Jump(row as _, col as _));
         let modified = op(&mut t);
 
         let (row, col, buf_after, yank) = after;

@@ -6,12 +6,12 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::{Block, Borders};
 use ratatui::Terminal;
+use ratatui_mergearea::{CursorMove, Input, Key, Scrolling, TextArea};
 use std::env;
 use std::fmt;
 use std::fs;
 use std::io;
 use std::io::BufRead;
-use ratatui_mergearea::{CursorMoveV2 as CursorMove, Input, Key, Scrolling, TextArea};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Mode {
@@ -95,46 +95,46 @@ impl Vim {
                     Input {
                         key: Key::Char('h'),
                         ..
-                    } => textarea.move_cursor_v2(CursorMove::Back),
+                    } => textarea.move_cursor(CursorMove::Back),
                     Input {
                         key: Key::Char('j'),
                         ..
-                    } => textarea.move_cursor_v2(CursorMove::Down),
+                    } => textarea.move_cursor(CursorMove::Down),
                     Input {
                         key: Key::Char('k'),
                         ..
-                    } => textarea.move_cursor_v2(CursorMove::Up),
+                    } => textarea.move_cursor(CursorMove::Up),
                     Input {
                         key: Key::Char('l'),
                         ..
-                    } => textarea.move_cursor_v2(CursorMove::Forward),
+                    } => textarea.move_cursor(CursorMove::Forward),
                     Input {
                         key: Key::Char('w'),
                         ..
-                    } => textarea.move_cursor_v2(CursorMove::WordForward),
+                    } => textarea.move_cursor(CursorMove::WordForward),
                     Input {
                         key: Key::Char('e'),
                         ctrl: false,
                         ..
                     } => {
-                        textarea.move_cursor_v2(CursorMove::WordEnd);
+                        textarea.move_cursor(CursorMove::WordEnd);
                         if matches!(self.mode, Mode::Operator(_)) {
-                            textarea.move_cursor_v2(CursorMove::Forward); // Include the text under the cursor
+                            textarea.move_cursor(CursorMove::Forward); // Include the text under the cursor
                         }
                     }
                     Input {
                         key: Key::Char('b'),
                         ctrl: false,
                         ..
-                    } => textarea.move_cursor_v2(CursorMove::WordBack),
+                    } => textarea.move_cursor(CursorMove::WordBack),
                     Input {
                         key: Key::Char('^'),
                         ..
-                    } => textarea.move_cursor_v2(CursorMove::Head),
+                    } => textarea.move_cursor(CursorMove::Head),
                     Input {
                         key: Key::Char('$'),
                         ..
-                    } => textarea.move_cursor_v2(CursorMove::End),
+                    } => textarea.move_cursor(CursorMove::End),
                     Input {
                         key: Key::Char('D'),
                         ..
@@ -192,7 +192,7 @@ impl Vim {
                         ..
                     } => {
                         textarea.cancel_selection_v2();
-                        textarea.move_cursor_v2(CursorMove::Forward);
+                        textarea.move_cursor(CursorMove::Forward);
                         return Transition::Mode(Mode::Insert);
                     }
                     Input {
@@ -200,14 +200,14 @@ impl Vim {
                         ..
                     } => {
                         textarea.cancel_selection_v2();
-                        textarea.move_cursor_v2(CursorMove::End);
+                        textarea.move_cursor(CursorMove::End);
                         return Transition::Mode(Mode::Insert);
                     }
                     Input {
                         key: Key::Char('o'),
                         ..
                     } => {
-                        textarea.move_cursor_v2(CursorMove::End);
+                        textarea.move_cursor(CursorMove::End);
                         textarea.insert_newline();
                         return Transition::Mode(Mode::Insert);
                     }
@@ -215,9 +215,9 @@ impl Vim {
                         key: Key::Char('O'),
                         ..
                     } => {
-                        textarea.move_cursor_v2(CursorMove::Head);
+                        textarea.move_cursor(CursorMove::Head);
                         textarea.insert_newline();
-                        textarea.move_cursor_v2(CursorMove::Up);
+                        textarea.move_cursor(CursorMove::Up);
                         return Transition::Mode(Mode::Insert);
                     }
                     Input {
@@ -225,7 +225,7 @@ impl Vim {
                         ..
                     } => {
                         textarea.cancel_selection_v2();
-                        textarea.move_cursor_v2(CursorMove::Head);
+                        textarea.move_cursor(CursorMove::Head);
                         return Transition::Mode(Mode::Insert);
                     }
                     Input {
@@ -275,9 +275,9 @@ impl Vim {
                         ctrl: false,
                         ..
                     } if self.mode == Mode::Normal => {
-                        textarea.move_cursor_v2(CursorMove::Head);
+                        textarea.move_cursor(CursorMove::Head);
                         textarea.start_selection_v2();
-                        textarea.move_cursor_v2(CursorMove::End);
+                        textarea.move_cursor(CursorMove::End);
                         return Transition::Mode(Mode::Visual);
                     }
                     Input { key: Key::Esc, .. }
@@ -302,25 +302,25 @@ impl Vim {
                         }
                     ) =>
                     {
-                        textarea.move_cursor_v2(CursorMove::Top)
+                        textarea.move_cursor(CursorMove::Top)
                     }
                     Input {
                         key: Key::Char('G'),
                         ctrl: false,
                         ..
-                    } => textarea.move_cursor_v2(CursorMove::Bottom),
+                    } => textarea.move_cursor(CursorMove::Bottom),
                     Input {
                         key: Key::Char(c),
                         ctrl: false,
                         ..
                     } if self.mode == Mode::Operator(c) => {
                         // Handle yy, dd, cc. (This is not strictly the same behavior as Vim)
-                        textarea.move_cursor_v2(CursorMove::Head);
+                        textarea.move_cursor(CursorMove::Head);
                         textarea.start_selection_v2();
                         let cursor = textarea.cursor();
-                        textarea.move_cursor_v2(CursorMove::Down);
+                        textarea.move_cursor(CursorMove::Down);
                         if cursor == textarea.cursor() {
-                            textarea.move_cursor_v2(CursorMove::End); // At the last line, move to end of the line instead
+                            textarea.move_cursor(CursorMove::End); // At the last line, move to end of the line instead
                         }
                     }
                     Input {
@@ -336,7 +336,7 @@ impl Vim {
                         ctrl: false,
                         ..
                     } if self.mode == Mode::Visual => {
-                        textarea.move_cursor_v2(CursorMove::Forward); // Vim's text selection is inclusive
+                        textarea.move_cursor(CursorMove::Forward); // Vim's text selection is inclusive
                         textarea.copy();
                         return Transition::Mode(Mode::Normal);
                     }
@@ -345,7 +345,7 @@ impl Vim {
                         ctrl: false,
                         ..
                     } if self.mode == Mode::Visual => {
-                        textarea.move_cursor_v2(CursorMove::Forward); // Vim's text selection is inclusive
+                        textarea.move_cursor(CursorMove::Forward); // Vim's text selection is inclusive
                         textarea.cut();
                         return Transition::Mode(Mode::Normal);
                     }
@@ -354,7 +354,7 @@ impl Vim {
                         ctrl: false,
                         ..
                     } if self.mode == Mode::Visual => {
-                        textarea.move_cursor_v2(CursorMove::Forward); // Vim's text selection is inclusive
+                        textarea.move_cursor(CursorMove::Forward); // Vim's text selection is inclusive
                         textarea.cut();
                         return Transition::Mode(Mode::Insert);
                     }

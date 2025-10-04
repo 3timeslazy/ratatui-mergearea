@@ -1,4 +1,4 @@
-use ratatui_mergearea::{CursorMoveV2 as CursorMove, TextArea};
+use ratatui_mergearea::{CursorMove, TextArea};
 
 const BOTTOM_RIGHT: CursorMove = CursorMove::Jump(u16::MAX, u16::MAX);
 
@@ -19,10 +19,10 @@ fn empty_textarea() {
         WordForward,
         WordEnd,
         WordBack,
-        // Jump(0, 0),
-        // Jump(u16::MAX, u16::MAX),
+        Jump(0, 0),
+        Jump(u16::MAX, u16::MAX),
     ] {
-        t.move_cursor_v2(m);
+        t.move_cursor(m);
         assert_eq!(t.cursor2(), (0, 0), "{m:?}");
     }
 }
@@ -60,7 +60,7 @@ fn forward() {
         let mut t = TextArea::with_value(text.join("\n"));
 
         for pos in positions {
-            t.move_cursor_v2(CursorMove::Forward);
+            t.move_cursor(CursorMove::Forward);
             assert_eq!(t.cursor2(), pos, "{:?}", t.text());
         }
     }
@@ -97,10 +97,10 @@ fn back() {
         ),
     ] {
         let mut t = TextArea::with_value(text.join("\n"));
-        t.move_cursor_v2(BOTTOM_RIGHT);
+        t.move_cursor(BOTTOM_RIGHT);
 
         for pos in positions {
-            t.move_cursor_v2(CursorMove::Back);
+            t.move_cursor(CursorMove::Back);
             assert_eq!(t.cursor2(), pos);
         }
     }
@@ -115,11 +115,11 @@ fn up() {
         for col in 0..=3 {
             let mut row = 2;
 
-            t.move_cursor_v2(CursorMove::Jump(2, col as u16));
+            t.move_cursor(CursorMove::Jump(2, col as u16));
             assert_eq!(t.cursor2(), (row, col), "{:?}", t.text());
 
             while row > 0 {
-                t.move_cursor_v2(CursorMove::Up);
+                t.move_cursor(CursorMove::Up);
                 row -= 1;
                 assert_eq!(t.cursor2(), (row, col), "{:?}", t.text());
             }
@@ -131,10 +131,10 @@ fn up() {
 fn up_trim() {
     for text in [["", "a", "bcd", "efgh"], ["", "👪", "🐶!🐱", "あ?い!"]] {
         let mut t = TextArea::with_value(text.join("\n"));
-        t.move_cursor_v2(CursorMove::Jump(3, 3));
+        t.move_cursor(CursorMove::Jump(3, 3));
 
         for expected in [(2, 3), (1, 1), (0, 0)] {
-            t.move_cursor_v2(CursorMove::Up);
+            t.move_cursor(CursorMove::Up);
             assert_eq!(t.cursor2(), expected, "{:?}", t.text());
         }
     }
@@ -149,11 +149,11 @@ fn down() {
         for col in 0..=3 {
             let mut row = 0;
 
-            t.move_cursor_v2(CursorMove::Jump(0, col as u16));
+            t.move_cursor(CursorMove::Jump(0, col as u16));
             assert_eq!(t.cursor2(), (row, col), "{:?}", t.text());
 
             while row < 2 {
-                t.move_cursor_v2(CursorMove::Down);
+                t.move_cursor(CursorMove::Down);
                 row += 1;
                 assert_eq!(t.cursor2(), (row, col), "{:?}", t.text());
             }
@@ -165,10 +165,10 @@ fn down() {
 fn down_trim() {
     for text in [["abcd", "efg", "h", ""], ["あ?い!", "🐶!🐱", "👪", ""]] {
         let mut t = TextArea::with_value(text.join("\n"));
-        t.move_cursor_v2(CursorMove::Jump(0, 3));
+        t.move_cursor(CursorMove::Jump(0, 3));
 
         for expected in [(1, 3), (2, 1), (3, 0)] {
-            t.move_cursor_v2(CursorMove::Down);
+            t.move_cursor(CursorMove::Down);
             assert_eq!(t.cursor2(), expected, "{:?}", t.text());
         }
     }
@@ -188,8 +188,8 @@ fn head() {
         for (row, line) in lines.iter().enumerate() {
             let len = line.len();
             for col in [0, len / 2, len] {
-                t.move_cursor_v2(CursorMove::Jump(row as u16, col as u16));
-                t.move_cursor_v2(CursorMove::Head);
+                t.move_cursor(CursorMove::Jump(row as u16, col as u16));
+                t.move_cursor(CursorMove::Head);
                 assert_eq!(t.cursor2(), (row, 0), "{lines:?}");
             }
         }
@@ -208,8 +208,8 @@ fn end() {
                 _ => unreachable!(),
             };
             for col in [0, len / 2, len] {
-                t.move_cursor_v2(CursorMove::Jump(row as u16, col as u16));
-                t.move_cursor_v2(CursorMove::End);
+                t.move_cursor(CursorMove::Jump(row as u16, col as u16));
+                t.move_cursor(CursorMove::End);
                 assert_eq!(t.cursor2(), (row, len), "{:?}", t.text());
             }
         }
@@ -224,8 +224,8 @@ fn top() {
 
         for row in 0..=2 {
             for col in 0..=3 {
-                t.move_cursor_v2(CursorMove::Jump(row as u16, col as u16));
-                t.move_cursor_v2(CursorMove::Top);
+                t.move_cursor(CursorMove::Jump(row as u16, col as u16));
+                t.move_cursor(CursorMove::Top);
                 assert_eq!(t.cursor2(), (0, col as usize), "{:?} {row} {col}", t.text());
             }
         }
@@ -248,8 +248,8 @@ fn top_trim() {
                 .join("\n");
             TextArea::with_value(str)
         };
-        t.move_cursor_v2(CursorMove::Jump(u16::MAX, u16::MAX));
-        t.move_cursor_v2(CursorMove::Top);
+        t.move_cursor(CursorMove::Jump(u16::MAX, u16::MAX));
+        t.move_cursor(CursorMove::Top);
         let col = t.text().as_str().chars().position(|c| c == '\n').unwrap();
         assert_eq!(t.cursor2(), (0, col), "{:?}", t.text());
     }
@@ -262,8 +262,8 @@ fn bottom() {
         let mut t = TextArea::with_value(text.join("\n"));
         for row in 0..=2 {
             for col in 0..=3 {
-                t.move_cursor_v2(CursorMove::Jump(row, col));
-                t.move_cursor_v2(CursorMove::Bottom);
+                t.move_cursor(CursorMove::Jump(row, col));
+                t.move_cursor(CursorMove::Bottom);
                 assert_eq!(t.cursor2(), (2, col as usize), "{:?}", t.text());
             }
         }
@@ -279,8 +279,8 @@ fn bottom_trim() {
         &["犬", ""][..],
     ] {
         let mut t = TextArea::with_value(lines.join("\n"));
-        t.move_cursor_v2(CursorMove::Jump(0, u16::MAX));
-        t.move_cursor_v2(CursorMove::Bottom);
+        t.move_cursor(CursorMove::Jump(0, u16::MAX));
+        t.move_cursor(CursorMove::Bottom);
         let text_lines = t.text().as_str().lines().collect::<Vec<&str>>();
         let col = text_lines.last().unwrap().chars().count();
         assert_eq!(t.cursor2(), (text_lines.len() - 1, col), "{:?}", t.text());
@@ -336,7 +336,7 @@ fn word_end() {
     ] {
         let mut t = TextArea::with_value(lines.join("\n"));
         for pos in positions {
-            t.move_cursor_v2(CursorMove::WordEnd);
+            t.move_cursor(CursorMove::WordEnd);
             assert_eq!(t.cursor2(), *pos, "{:?}", t.text());
         }
     }
@@ -385,10 +385,10 @@ fn word_back() {
         (&["aaa йу𝑥 🐶🐱"][..], &[(0, 8), (0, 4), (0, 0)][..]),
     ] {
         let mut t = TextArea::with_value(lines.join("\n"));
-        t.move_cursor_v2(CursorMove::Jump(u16::MAX, u16::MAX));
+        t.move_cursor(CursorMove::Jump(u16::MAX, u16::MAX));
 
         for pos in positions {
-            t.move_cursor_v2(CursorMove::WordBack);
+            t.move_cursor(CursorMove::WordBack);
             assert_eq!(t.cursor2(), *pos, "{:?}", t.text());
         }
     }
