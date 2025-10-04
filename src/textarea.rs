@@ -306,14 +306,12 @@ impl<'a> TextArea<'a> {
                 ..
             } => self.delete_next_char_v2(),
 
-            // Similar to d$ (TODO)
-            //
-            // Input {
-            //     key: Key::Char('k'),
-            //     ctrl: true,
-            //     alt: false,
-            //     ..
-            // } => self.delete_line_by_end(),
+            Input {
+                key: Key::Char('k'),
+                ctrl: true,
+                alt: false,
+                ..
+            } => self.delete_line_by_end(),
 
             // Similar to d^ (TODO)
             //
@@ -1120,7 +1118,7 @@ impl<'a> TextArea<'a> {
     /// Delete string from cursor to end of the line. When the cursor is at end of line, the newline next to the cursor
     /// is removed. This method returns if some text was deleted or not in the textarea.
     /// ```
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
     /// let mut textarea = TextArea::from(["abcde"]);
     ///
@@ -1129,26 +1127,38 @@ impl<'a> TextArea<'a> {
     /// textarea.move_cursor(CursorMove::Forward);
     ///
     /// textarea.delete_line_by_end();
-    /// assert_eq!(textarea.lines(), ["ab"]);
+    /// assert_eq!(textarea.text().as_str(), "ab");
     /// ```
     pub fn delete_line_by_end(&mut self) -> bool {
-        if self.delete_selection(false) {
-            return true;
-        }
-        if self.delete_piece(self.cursor.1, usize::MAX) {
-            return true;
-        }
-        self.delete_next_char() // At the end of the line. Try to delete next line
-    }
-
-    pub fn delete_line_by_end_v2(&mut self) -> bool {
         if self.delete_selection_v2(false) {
             return true;
         }
-        if self.delete_piece(self.cursor.1, usize::MAX) {
-            return true;
+
+        if let Some(c) = self.text.as_str().chars().nth(self.cursor_v2) {
+            if c == '\n' {
+                self.delete_next_char_v2();
+                return true;
+            }
         }
-        self.delete_next_char_v2() // At the end of the line. Try to delete next line
+
+        let next_newline = self
+            .text
+            .as_str()
+            .chars()
+            .skip(self.cursor_v2)
+            .position(|c| c == '\n');
+
+        let range = match next_newline {
+            Some(i) => (self.cursor_v2, self.cursor_v2 + i),
+            None => (self.cursor_v2, self.text.as_str().chars().count()),
+        };
+
+        if range.0 == range.1 {
+            return false;
+        }
+
+        self.delete_range_v2(range.0, range.1, true);
+        true
     }
 
     /// Delete string from cursor to head of the line. When the cursor is at head of line, the newline before the cursor
