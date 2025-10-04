@@ -1496,17 +1496,17 @@ fn test_delete_selection_on_delete_edge_cases() {
 //     }
 // }
 
-// #[test]
-// fn test_select_all() {
-//     let mut t = TextArea::from(["aaa", "bbb", "ccc"]);
-//     t.select_all();
-//     assert!(t.is_selecting());
-//     assert_eq!(t.cursor(), (2, 3));
-//     t.cut();
-//     assert_eq!(t.lines(), [""]);
-//     assert_eq!(t.yank_text(), "aaa\nbbb\nccc");
-//     assert_undo_redo((2, 3), &["aaa", "bbb", "ccc"], &[""], &mut t, "");
-// }
+#[test]
+fn test_select_all() {
+    let mut t = TextArea::with_value("aaa\nbbb\nccc");
+    t.select_all();
+    assert!(t.is_selecting());
+    assert_eq!(t.cursor2(), (2, 3));
+    t.cut();
+    assert_eq!(t.text().as_str(), "");
+    assert_eq!(t.yank_text(), "aaa\nbbb\nccc");
+    // assert_undo_redo((2, 3), "aaa\nbbb\nccc", "", &mut t, "");
+}
 
 // #[test]
 // fn test_paste_while_selection() {

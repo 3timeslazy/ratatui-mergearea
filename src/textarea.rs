@@ -1386,8 +1386,8 @@ impl<'a> TextArea<'a> {
     /// assert_eq!(textarea.yank_text(), "aaa\nbbb\nccc");
     /// ```
     pub fn select_all(&mut self) {
-        self.move_cursor(CursorMove::Jump(u16::MAX, u16::MAX));
-        self.selection_start = Some((0, 0));
+        self.move_cursor_v2(CursorMoveV2::Jump(u16::MAX, u16::MAX));
+        self.selection_start_v2 = Some(0);
     }
 
     /// Return if text selection is ongoing or not.
@@ -1403,7 +1403,7 @@ impl<'a> TextArea<'a> {
     /// assert!(!textarea.is_selecting());
     /// ```
     pub fn is_selecting(&self) -> bool {
-        self.selection_start.is_some()
+        self.selection_start_v2.is_some()
     }
 
     fn line_offset(&self, row: usize, col: usize) -> usize {
