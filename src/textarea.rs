@@ -862,90 +862,30 @@ impl<'a> TextArea<'a> {
     /// length of the string. Newlines at the end of lines are counted in the number. This method returns if some text
     /// was deleted or not.
     /// ```
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::from(["🐱🐶🐰🐮"]);
+    /// let mut textarea = TextArea::with_value("🐱🐶🐰🐮");
     /// textarea.move_cursor(CursorMove::Forward);
     ///
     /// textarea.delete_str(2);
-    /// assert_eq!(textarea.lines(), ["🐱🐮"]);
+    /// assert_eq!(textarea.text().as_str(), "🐱🐮");
     ///
-    /// let mut textarea = TextArea::from(["🐱", "🐶", "🐰", "🐮"]);
+    /// let mut textarea = TextArea::with_value("🐱\n🐶\n🐰\n🐮");
     /// textarea.move_cursor(CursorMove::Down);
     ///
     /// textarea.delete_str(4); // Deletes 🐶, \n, 🐰, \n
-    /// assert_eq!(textarea.lines(), ["🐱", "🐮"]);
+    /// assert_eq!(textarea.text().as_str(), "🐱\n🐮");
     /// ```
     pub fn delete_str(&mut self, chars: usize) -> bool {
-        if self.delete_selection(false) {
+        if self.delete_selection_v2(false) {
             return true;
         }
         if chars == 0 {
             return false;
         }
 
-        let (start_row, start_col) = self.cursor;
+        self.delete_range_v2(self.cursor_v2, self.cursor_v2 + chars, true);
 
-        let mut remaining = chars;
-        let mut find_end = move |line: &str| {
-            let mut col = 0usize;
-            for (i, _) in line.char_indices() {
-                if remaining == 0 {
-                    return Some((i, col));
-                }
-                col += 1;
-                remaining -= 1;
-            }
-            if remaining == 0 {
-                Some((line.len(), col))
-            } else {
-                remaining -= 1;
-                None
-            }
-        };
-
-        let line = &self.lines[start_row];
-        let start_offset = {
-            line.char_indices()
-                .nth(start_col)
-                .map(|(i, _)| i)
-                .unwrap_or(line.len())
-        };
-
-        // First line
-        if let Some((offset_delta, col_delta)) = find_end(&line[start_offset..]) {
-            let end_offset = start_offset + offset_delta;
-            let end_col = start_col + col_delta;
-            let removed = self.lines[start_row]
-                .drain(start_offset..end_offset)
-                .as_str()
-                .to_string();
-            self.yank = removed.clone().into();
-            self.push_history(
-                EditKind::DeleteStr(removed),
-                Pos::new(start_row, end_col, end_offset),
-                start_offset,
-            );
-            return true;
-        }
-
-        let mut r = start_row + 1;
-        let mut offset = 0;
-        let mut col = 0;
-
-        while r < self.lines.len() {
-            let line = &self.lines[r];
-            if let Some((o, c)) = find_end(line) {
-                offset = o;
-                col = c;
-                break;
-            }
-            r += 1;
-        }
-
-        let start = Pos::new(start_row, start_col, start_offset);
-        let end = Pos::new(r, col, offset);
-        self.delete_range(start, end, true);
         true
     }
 
