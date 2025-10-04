@@ -267,7 +267,7 @@ impl Vim {
                         ctrl: false,
                         ..
                     } if self.mode == Mode::Normal => {
-                        textarea.start_selection_v2();
+                        textarea.start_selection();
                         return Transition::Mode(Mode::Visual);
                     }
                     Input {
@@ -276,7 +276,7 @@ impl Vim {
                         ..
                     } if self.mode == Mode::Normal => {
                         textarea.move_cursor(CursorMove::Head);
-                        textarea.start_selection_v2();
+                        textarea.start_selection();
                         textarea.move_cursor(CursorMove::End);
                         return Transition::Mode(Mode::Visual);
                     }
@@ -316,7 +316,7 @@ impl Vim {
                     } if self.mode == Mode::Operator(c) => {
                         // Handle yy, dd, cc. (This is not strictly the same behavior as Vim)
                         textarea.move_cursor(CursorMove::Head);
-                        textarea.start_selection_v2();
+                        textarea.start_selection();
                         let cursor = textarea.cursor();
                         textarea.move_cursor(CursorMove::Down);
                         if cursor == textarea.cursor() {
@@ -328,7 +328,7 @@ impl Vim {
                         ctrl: false,
                         ..
                     } if self.mode == Mode::Normal => {
-                        textarea.start_selection_v2();
+                        textarea.start_selection();
                         return Transition::Mode(Mode::Operator(op));
                     }
                     Input {

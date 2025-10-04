@@ -954,7 +954,7 @@ fn test_copy_single_line() {
             let mut t = TextArea::with_value("abc");
 
             t.move_cursor(CursorMove::Jump(0, i as u16));
-            t.start_selection_v2();
+            t.start_selection();
             t.move_cursor(CursorMove::Jump(0, j as u16));
             t.copy();
 
@@ -1350,7 +1350,7 @@ fn test_delete_selection_on_delete_operations() {
     for (n, f) in tests {
         let mut t = TextArea::new(autosurgeon::Text::with_value("ab\ncd\nef"));
         t.move_cursor(CursorMove::Jump(0, 1));
-        t.start_selection_v2();
+        t.start_selection();
         t.move_cursor(CursorMove::Jump(2, 1));
 
         let modified = f(&mut t);
@@ -1395,7 +1395,7 @@ fn test_delete_selection_on_delete_edge_cases() {
     for (n, f, pos) in tests {
         let mut t = TextArea::with_value("ab\ncd\nef");
         t.move_cursor(CursorMove::Jump(1, 1));
-        t.start_selection_v2();
+        t.start_selection();
         t.move_cursor(CursorMove::Jump(pos.0 as _, pos.1 as _));
 
         assert!(f(&mut t), "{n}, {pos:?}");

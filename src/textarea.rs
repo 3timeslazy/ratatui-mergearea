@@ -1238,9 +1238,9 @@ impl<'a> TextArea<'a> {
 
     /// Start text selection at the cursor position. If text selection is already ongoing, the start position is reset.
     /// ```
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::from(["aaa bbb ccc"]);
+    /// let mut textarea = TextArea::with_value("aaa bbb ccc");
     ///
     /// textarea.start_selection();
     /// textarea.move_cursor(CursorMove::WordForward);
@@ -1248,10 +1248,6 @@ impl<'a> TextArea<'a> {
     /// assert_eq!(textarea.yank_text(), "aaa ");
     /// ```
     pub fn start_selection(&mut self) {
-        self.selection_start = Some(self.cursor);
-    }
-
-    pub fn start_selection_v2(&mut self) {
         self.selection_start_v2 = Some(self.cursor_v2);
     }
 
@@ -1489,7 +1485,7 @@ impl<'a> TextArea<'a> {
         if let Some(cursor) = m.next_cursor(self.cursor_v2, &self.text, &self.viewport) {
             if shift {
                 if self.selection_start_v2.is_none() {
-                    self.start_selection_v2();
+                    self.start_selection();
                 }
             } else {
                 self.cancel_selection_v2();
