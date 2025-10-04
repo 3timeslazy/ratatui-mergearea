@@ -19,153 +19,149 @@ use std::{cmp, u16};
 pub enum CursorMove {
     /// Move cursor forward by one character. When the cursor is at the end of line, it moves to the head of next line.
     /// ```
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::from(["abc"]);
+    /// let mut textarea = TextArea::with_value("abc");
     ///
     /// textarea.move_cursor(CursorMove::Forward);
-    /// assert_eq!(textarea.cursor(), (0, 1));
+    /// assert_eq!(textarea.cursor2(), (0, 1));
     /// textarea.move_cursor(CursorMove::Forward);
-    /// assert_eq!(textarea.cursor(), (0, 2));
+    /// assert_eq!(textarea.cursor2(), (0, 2));
     /// ```
     Forward,
     /// Move cursor backward by one character. When the cursor is at the head of line, it moves to the end of previous
     /// line.
     /// ```
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::from(["abc"]);
+    /// let mut textarea = TextArea::with_value("abc");
     ///
     /// textarea.move_cursor(CursorMove::Forward);
     /// textarea.move_cursor(CursorMove::Forward);
     /// textarea.move_cursor(CursorMove::Back);
-    /// assert_eq!(textarea.cursor(), (0, 1));
+    /// assert_eq!(textarea.cursor2(), (0, 1));
     /// ```
     Back,
     /// Move cursor up by one line.
     /// ```
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::from(["a", "b", "c"]);
+    /// let mut textarea = TextArea::with_value("a\nb\nc");
     ///
     /// textarea.move_cursor(CursorMove::Down);
     /// textarea.move_cursor(CursorMove::Down);
     /// textarea.move_cursor(CursorMove::Up);
-    /// assert_eq!(textarea.cursor(), (1, 0));
+    /// assert_eq!(textarea.cursor2(), (1, 0));
     /// ```
     Up,
     /// Move cursor down by one line.
     /// ```
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::from(["a", "b", "c"]);
+    /// let mut textarea = TextArea::with_value("a\nb\nc");
     ///
     /// textarea.move_cursor(CursorMove::Down);
-    /// assert_eq!(textarea.cursor(), (1, 0));
+    /// assert_eq!(textarea.cursor2(), (1, 0));
     /// textarea.move_cursor(CursorMove::Down);
-    /// assert_eq!(textarea.cursor(), (2, 0));
+    /// assert_eq!(textarea.cursor2(), (2, 0));
     /// ```
     Down,
     /// Move cursor to the head of line. When the cursor is at the head of line, it moves to the end of previous line.
     /// ```
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::from(["abc"]);
+    /// let mut textarea = TextArea::with_value("abc");
     ///
     /// textarea.move_cursor(CursorMove::Forward);
     /// textarea.move_cursor(CursorMove::Forward);
     /// textarea.move_cursor(CursorMove::Head);
-    /// assert_eq!(textarea.cursor(), (0, 0));
+    /// assert_eq!(textarea.cursor2(), (0, 0));
     /// ```
     Head,
     /// Move cursor to the end of line. When the cursor is at the end of line, it moves to the head of next line.
     /// ```
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::from(["abc"]);
+    /// let mut textarea = TextArea::with_value("abc");
     ///
     /// textarea.move_cursor(CursorMove::End);
-    /// assert_eq!(textarea.cursor(), (0, 3));
+    /// assert_eq!(textarea.cursor2(), (0, 3));
     /// ```
     End,
     /// Move cursor to the top of lines.
     /// ```
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::from(["a", "b", "c"]);
+    /// let mut textarea = TextArea::with_value("a\nb\nc");
     ///
     /// textarea.move_cursor(CursorMove::Down);
     /// textarea.move_cursor(CursorMove::Down);
     /// textarea.move_cursor(CursorMove::Top);
-    /// assert_eq!(textarea.cursor(), (0, 0));
+    /// assert_eq!(textarea.cursor2(), (0, 0));
     /// ```
     Top,
     /// Move cursor to the bottom of lines.
     /// ```
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::from(["a", "b", "c"]);
+    /// let mut textarea = TextArea::with_value("a\nb\nc");
     ///
     /// textarea.move_cursor(CursorMove::Bottom);
-    /// assert_eq!(textarea.cursor(), (2, 0));
+    /// assert_eq!(textarea.cursor2(), (2, 0));
     /// ```
     Bottom,
     /// Move cursor forward by one word. Word boundary appears at spaces, punctuations, and others. For example
     /// `fn foo(a)` consists of words `fn`, `foo`, `(`, `a`, `)`. When the cursor is at the end of line, it moves to the
     /// head of next line.
     /// ```
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::from(["aaa bbb ccc"]);
+    /// let mut textarea = TextArea::with_value("aaa bbb ccc");
     ///
     /// textarea.move_cursor(CursorMove::WordForward);
-    /// assert_eq!(textarea.cursor(), (0, 4));
+    /// assert_eq!(textarea.cursor2(), (0, 4));
     /// textarea.move_cursor(CursorMove::WordForward);
-    /// assert_eq!(textarea.cursor(), (0, 8));
+    /// assert_eq!(textarea.cursor2(), (0, 8));
     /// ```
     WordForward,
     /// Move cursor forward to the next end of word. Word boundary appears at spaces, punctuations, and others. For example
     /// `fn foo(a)` consists of words `fn`, `foo`, `(`, `a`, `)`. When the cursor is at the end of line, it moves to the
     /// end of the first word of the next line. This is similar to the 'e' mapping of Vim in normal mode.
     /// ```
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::from([
-    ///     "aaa bbb [[[ccc]]]",
-    ///     "",
-    ///     " ddd",
-    /// ]);
+    /// let mut textarea = TextArea::with_value("aaa bbb [[[ccc]]]\n\n ddd")
     ///
     ///
     /// textarea.move_cursor(CursorMove::WordEnd);
-    /// assert_eq!(textarea.cursor(), (0, 2));      // At the end of 'aaa'
+    /// assert_eq!(textarea.cursor2(), (0, 2));      // At the end of 'aaa'
     /// textarea.move_cursor(CursorMove::WordEnd);
-    /// assert_eq!(textarea.cursor(), (0, 6));      // At the end of 'bbb'
+    /// assert_eq!(textarea.cursor2(), (0, 6));      // At the end of 'bbb'
     /// textarea.move_cursor(CursorMove::WordEnd);
-    /// assert_eq!(textarea.cursor(), (0, 10));     // At the end of '[[['
+    /// assert_eq!(textarea.cursor2(), (0, 10));     // At the end of '[[['
     /// textarea.move_cursor(CursorMove::WordEnd);
-    /// assert_eq!(textarea.cursor(), (0, 13));     // At the end of 'ccc'
+    /// assert_eq!(textarea.cursor2(), (0, 13));     // At the end of 'ccc'
     /// textarea.move_cursor(CursorMove::WordEnd);
-    /// assert_eq!(textarea.cursor(), (0, 16));     // At the end of ']]]'
+    /// assert_eq!(textarea.cursor2(), (0, 16));     // At the end of ']]]'
     /// textarea.move_cursor(CursorMove::WordEnd);
-    /// assert_eq!(textarea.cursor(), (2, 3));      // At the end of 'ddd'
+    /// assert_eq!(textarea.cursor2(), (2, 3));      // At the end of 'ddd'
     /// ```
     WordEnd,
     /// Move cursor backward by one word.  Word boundary appears at spaces, punctuations, and others. For example
     /// `fn foo(a)` consists of words `fn`, `foo`, `(`, `a`, `)`.When the cursor is at the head of line, it moves to
     /// the end of previous line.
     /// ```
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::from(["aaa bbb ccc"]);
+    /// let mut textarea = TextArea::with_value("aaa bbb ccc");
     ///
     /// textarea.move_cursor(CursorMove::End);
     /// textarea.move_cursor(CursorMove::WordBack);
-    /// assert_eq!(textarea.cursor(), (0, 8));
+    /// assert_eq!(textarea.cursor2(), (0, 8));
     /// textarea.move_cursor(CursorMove::WordBack);
-    /// assert_eq!(textarea.cursor(), (0, 4));
+    /// assert_eq!(textarea.cursor2(), (0, 4));
     /// textarea.move_cursor(CursorMove::WordBack);
-    /// assert_eq!(textarea.cursor(), (0, 0));
+    /// assert_eq!(textarea.cursor2(), (0, 0));
     /// ```
     WordBack,
     /// Move cursor to (row, col) position. When the position points outside the text, the cursor position is made fit
@@ -174,15 +170,15 @@ pub enum CursorMove {
     /// When there are 10 lines, jumping to row 15 moves the cursor to the last line (row is 9 in the case). When there
     /// are 10 characters in the line, jumping to col 15 moves the cursor to end of the line (col is 10 in the case).
     /// ```
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::from(["aaaa", "bbbb", "cccc"]);
+    /// let mut textarea = TextArea::with_value("aaaa\nbbbb\ncccc");
     ///
     /// textarea.move_cursor(CursorMove::Jump(1, 2));
-    /// assert_eq!(textarea.cursor(), (1, 2));
+    /// assert_eq!(textarea.cursor2(), (1, 2));
     ///
     /// textarea.move_cursor(CursorMove::Jump(10,  10));
-    /// assert_eq!(textarea.cursor(), (2, 4));
+    /// assert_eq!(textarea.cursor2(), (2, 4));
     /// ```
     Jump(u16, u16),
     /// Move cursor to keep it within the viewport. For example, when a viewport displays line 8 to line 16:
@@ -196,7 +192,7 @@ pub enum CursorMove {
     /// # use ratatui::buffer::Buffer;
     /// # use ratatui::layout::Rect;
     /// # use ratatui::widgets::Widget as _;
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
     /// // Let's say terminal height is 8.
     ///
@@ -210,11 +206,11 @@ pub enum CursorMove {
     ///
     /// // Move cursor to the end of lines (line 20). It is outside the viewport (line 1 to line 8)
     /// textarea.move_cursor(CursorMove::Bottom);
-    /// assert_eq!(textarea.cursor(), (19, 0));
+    /// assert_eq!(textarea.cursor2(), (19, 0));
     ///
     /// // Cursor is moved to line 8 to enter the viewport
     /// textarea.move_cursor(CursorMove::InViewport);
-    /// assert_eq!(textarea.cursor(), (7, 0));
+    /// assert_eq!(textarea.cursor2(), (7, 0));
     /// ```
     InViewport,
 }
@@ -366,7 +362,8 @@ impl CursorMove {
                 let (row_top, col_top, row_bottom, col_bottom) = viewport.position();
 
                 let top = Self::Jump(row_top, col_top).next_cursor(offset, text, viewport)?;
-                let bottom = Self::Jump(row_bottom, col_bottom).next_cursor(offset, text, viewport)?;
+                let bottom =
+                    Self::Jump(row_bottom, col_bottom).next_cursor(offset, text, viewport)?;
 
                 Some(offset.clamp(top, bottom))
             }
