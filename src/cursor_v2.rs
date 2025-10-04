@@ -314,9 +314,12 @@ impl CursorMove {
                 let col = offset - line_start;
                 CursorMove::Jump(u16::MAX, col as u16).next_cursor(offset, text, viewport)
             }
-            // TODO: in the word in the last one in the sentence (even with whitespaces at the end)
-            // it does not move cursor to the end
-            WordForward => find_word_start_forward_v2(text.as_str(), offset),
+            WordForward => {
+                match find_word_start_forward_v2(text.as_str(), offset) {
+                    None => find_word_inclusive_end_forward_v2(text.as_str(), offset + 1),
+                    Some(pos) => Some(pos),
+                }
+            }
             WordEnd => find_word_inclusive_end_forward_v2(text.as_str(), offset + 1),
             WordBack => find_word_start_backward_v2(text.as_str(), offset.saturating_sub(1)),
             Jump(row, col) => {
