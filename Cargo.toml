@@ -42,18 +42,6 @@ name = "minimal"
 required-features = ["crossterm"]
 
 [[example]]
-name = "editor"
-required-features = ["crossterm", "search"]
-
-[[example]]
-name = "split"
-required-features = ["crossterm"]
-
-[[example]]
-name = "single_line"
-required-features = ["crossterm"]
-
-[[example]]
 name = "variable"
 required-features = ["crossterm"]
 
@@ -62,20 +50,8 @@ name = "vim"
 required-features = ["crossterm"]
 
 [[example]]
-name = "password"
+name = "sync"
 required-features = ["crossterm"]
-
-[[example]]
-name = "popup_placeholder"
-required-features = ["crossterm"]
-
-[[example]]
-name = "termwiz"
-required-features = ["termwiz"]
-
-[[example]]
-name = "termion"
-required-features = ["termion"]
 
 [workspace]
 members = ["bench"]

@@ -8,7 +8,7 @@ use ratatui::widgets::{Block, Borders};
 use ratatui::Terminal;
 use std::cmp;
 use std::io;
-use tui_textarea::{Input, Key, TextArea};
+use ratatui_mergearea::{Input, Key, TextArea};
 
 fn main() -> io::Result<()> {
     let stdout = io::stdout();
@@ -29,7 +29,7 @@ fn main() -> io::Result<()> {
     loop {
         term.draw(|f| {
             const MIN_HEIGHT: usize = 3;
-            let height = cmp::max(textarea.lines().len(), MIN_HEIGHT) as u16 + 2; // + 2 for borders
+            let height = cmp::max(textarea.text().as_str().lines().count(), MIN_HEIGHT) as u16 + 2; // + 2 for borders
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([Constraint::Length(height), Constraint::Min(0)])
@@ -39,7 +39,7 @@ fn main() -> io::Result<()> {
         match crossterm::event::read()?.into() {
             Input { key: Key::Esc, .. } => break,
             input => {
-                textarea.input(input);
+                textarea.input_emacs(input);
             }
         }
     }
@@ -52,6 +52,6 @@ fn main() -> io::Result<()> {
     )?;
     term.show_cursor()?;
 
-    println!("Lines: {:?}", textarea.lines());
+    println!("Lines: {:?}", textarea.text().as_str());
     Ok(())
 }
