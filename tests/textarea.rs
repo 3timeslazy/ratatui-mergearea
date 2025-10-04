@@ -1339,7 +1339,7 @@ fn test_delete_selection_on_delete_operations() {
 
     let tests = [
         test_case!(delete_char_v2()),
-        test_case!(delete_next_char_v2()),
+        test_case!(delete_next_char()),
         test_case!(delete_line_by_end()),
         // test_case!(delete_line_by_head()),
         // test_case!(delete_word()),
@@ -1378,8 +1378,8 @@ fn test_delete_selection_on_delete_edge_cases() {
     let tests = [
         test_case!(delete_char_v2(), (0, 0)),
         test_case!(delete_char_v2(), (1, 0)),
-        test_case!(delete_next_char_v2(), (2, 2)),
-        test_case!(delete_next_char_v2(), (1, 2)),
+        test_case!(delete_next_char(), (2, 2)),
+        test_case!(delete_next_char(), (1, 2)),
         test_case!(delete_line_by_end(), (0, 2)),
         test_case!(delete_line_by_end(), (2, 2)),
         // test_case!(delete_line_by_head(), (0, 0)),
@@ -1616,14 +1616,14 @@ fn test_delete_newline() {
 //     t.test((1, 0), (0, 2, &["abc"], ""));
 // }
 
-// #[test]
-// fn test_delete_next_char() {
-//     let t = DeleteTester(&["ab", "c"], |t| t.delete_next_char());
-//     t.test((0, 0), (0, 0, &["b", "c"], ""));
-//     t.test((0, 1), (0, 1, &["a", "c"], ""));
-//     t.test((0, 2), (0, 2, &["abc"], ""));
-//     t.test((1, 1), (1, 1, t.0, ""));
-// }
+#[test]
+fn test_delete_next_char() {
+    let t = DeleteTester("ab\nc", |t| t.delete_next_char());
+    t.test((0, 0), (0, 0, "b\nc", ""));
+    t.test((0, 1), (0, 1, "a\nc", ""));
+    t.test((0, 2), (0, 2, "abc", ""));
+    t.test((1, 1), (1, 1, t.0, ""));
+}
 
 #[test]
 fn test_delete_line_by_end() {

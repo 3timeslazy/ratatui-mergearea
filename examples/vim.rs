@@ -177,7 +177,7 @@ impl Vim {
                         key: Key::Char('x'),
                         ..
                     } => {
-                        textarea.delete_next_char_v2();
+                        textarea.delete_next_char();
                         return Transition::Mode(Mode::Normal);
                     }
                     Input {

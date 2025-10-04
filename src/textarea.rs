@@ -304,7 +304,7 @@ impl<'a> TextArea<'a> {
                 ctrl: false,
                 alt: false,
                 ..
-            } => self.delete_next_char_v2(),
+            } => self.delete_next_char(),
 
             Input {
                 key: Key::Char('k'),
@@ -681,7 +681,7 @@ impl<'a> TextArea<'a> {
             } => self.delete_char_v2(),
             Input {
                 key: Key::Delete, ..
-            } => self.delete_next_char_v2(),
+            } => self.delete_next_char(),
             Input {
                 key: Key::Enter, ..
             } => {
@@ -1012,7 +1012,7 @@ impl<'a> TextArea<'a> {
         }
 
         if let Some(i) = prev_line {
-            self.delete_range_v2(i, i+1, false);
+            self.delete_range_v2(i, i + 1, false);
         }
 
         prev_line.is_some()
@@ -1088,20 +1088,6 @@ impl<'a> TextArea<'a> {
     /// assert_eq!(textarea.lines(), ["ac"]);
     /// ```
     pub fn delete_next_char(&mut self) -> bool {
-        if self.delete_selection(false) {
-            return true;
-        }
-
-        let before = self.cursor;
-        self.move_cursor_with_shift(CursorMove::Forward, false);
-        if before == self.cursor {
-            return false; // Cursor didn't move, meant no character at next of cursor.
-        }
-
-        self.delete_char()
-    }
-
-    pub fn delete_next_char_v2(&mut self) -> bool {
         if self.delete_selection_v2(false) {
             return true;
         }
@@ -1136,7 +1122,7 @@ impl<'a> TextArea<'a> {
 
         if let Some(c) = self.text.as_str().chars().nth(self.cursor_v2) {
             if c == '\n' {
-                self.delete_next_char_v2();
+                self.delete_next_char();
                 return true;
             }
         }
@@ -1622,6 +1608,10 @@ impl<'a> TextArea<'a> {
         if row == cursor2.0 {
             hl.cursor_line(cursor2.1, self.cursor_line_style);
         }
+
+        // if self.cursor() == self.text.as_str().len() {
+        //     hl.with_select_at_end();
+        // }
 
         if let Some(style) = self.line_number_style {
             hl.line_number(row, lnum_len, style);
@@ -2155,6 +2145,16 @@ impl<'a> TextArea<'a> {
                 (self.cursor, pos)
             } else {
                 (pos, self.cursor)
+            }
+        })
+    }
+
+    pub fn selection_range_v2(&self) -> Option<(usize, usize)> {
+        self.selection_start_v2.map(|off| {
+            if off > self.cursor_v2 {
+                (self.cursor_v2, off)
+            } else {
+                (off, self.cursor_v2)
             }
         })
     }
