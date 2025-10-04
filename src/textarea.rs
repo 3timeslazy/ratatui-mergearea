@@ -16,7 +16,6 @@ use crate::word::{find_word_exclusive_end_forward, find_word_start_backward};
 use ratatui::text::Line;
 use std::cmp::{self, Ordering};
 use std::fmt;
-use std::ops::Deref;
 use unicode_width::UnicodeWidthChar as _;
 
 #[derive(Debug, Clone)]
@@ -723,12 +722,12 @@ impl<'a> TextArea<'a> {
 
     /// Insert a single character at current cursor position.
     /// ```
-    /// use tui_textarea::TextArea;
+    /// use ratatui_mergearea::TextArea;
     ///
     /// let mut textarea = TextArea::default();
     ///
     /// textarea.insert_char('a');
-    /// assert_eq!(textarea.lines(), ["a"]);
+    /// assert_eq!(textarea.text().as_str(), "a");
     /// ```
     pub fn insert_char(&mut self, c: char) {
         if c == '\n' || c == '\r' {
@@ -750,7 +749,6 @@ impl<'a> TextArea<'a> {
     }
 
     /// Insert a string at current cursor position. This method returns if some text was inserted or not in the textarea.
-    /// Both `\n` and `\r\n` are recognized as newlines but `\r` isn't.
     /// ```
     /// use ratatui_mergearea::TextArea;
     ///
@@ -1375,16 +1373,16 @@ impl<'a> TextArea<'a> {
     /// Select the entire text. Cursor moves to the end of the text buffer. When text selection is already ongoing,
     /// it is canceled.
     /// ```
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::from(["aaa", "bbb", "ccc"]);
+    /// let mut textarea = TextArea::with_value("aaa\nbbb\nccc");
     ///
     /// textarea.select_all();
     ///
     /// // Cut the entire text;
     /// textarea.cut();
     ///
-    /// assert_eq!(textarea.lines(), [""]); // Buffer is now empty
+    /// assert_eq!(textarea.text().as_str(), ""); // Buffer is now empty
     /// assert_eq!(textarea.yank_text(), "aaa\nbbb\nccc");
     /// ```
     pub fn select_all(&mut self) {
@@ -1394,7 +1392,7 @@ impl<'a> TextArea<'a> {
 
     /// Return if text selection is ongoing or not.
     /// ```
-    /// use tui_textarea::{TextArea};
+    /// use ratatui_mergearea::{TextArea};
     ///
     /// let mut textarea = TextArea::default();
     ///
