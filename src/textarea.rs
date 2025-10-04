@@ -1002,23 +1002,22 @@ impl<'a> TextArea<'a> {
     /// assert_eq!(textarea.lines(), ["helloworld"]);
     /// ```
     pub fn delete_newline(&mut self) -> bool {
-        if self.delete_selection(false) {
+        if self.delete_selection_v2(false) {
             return true;
         }
 
-        let (row, _) = self.cursor;
-        if row == 0 {
-            return false;
+        let mut prev_line: Option<usize> = None;
+        for (i, c) in self.text.as_str().char_indices() {
+            if c == '\n' && i < self.cursor_v2 {
+                prev_line = Some(i);
+            }
         }
 
-        let line = self.lines.remove(row);
-        let prev_line = &mut self.lines[row - 1];
-        let prev_line_end = prev_line.len();
+        if let Some(i) = prev_line {
+            self.delete_range_v2(i, i+1, false);
+        }
 
-        self.cursor = (row - 1, prev_line.chars().count());
-        prev_line.push_str(&line);
-        self.push_history(EditKind::DeleteNewline, Pos::new(row, 0, 0), prev_line_end);
-        true
+        prev_line.is_some()
     }
 
     /// Delete one character before cursor. When the cursor is at head of line, the newline before the cursor will be

@@ -1572,40 +1572,40 @@ fn test_select_all() {
 //     }
 // }
 
-// struct DeleteTester(&'static [&'static str], fn(&mut TextArea) -> bool);
-// impl DeleteTester {
-//     fn test(&self, before: (usize, usize), after: (usize, usize, &[&str], &str)) {
-//         let Self(buf_before, op) = *self;
-//         let (row, col) = before;
+struct DeleteTester(&'static str, fn(&mut TextArea) -> bool);
+impl DeleteTester {
+    fn test(&self, before: (usize, usize), after: (usize, usize, &str, &str)) {
+        let Self(buf_before, op) = *self;
+        let (row, col) = before;
 
-//         let mut t = TextArea::from(buf_before.iter().map(|s| s.to_string()));
-//         t.move_cursor(CursorMove::Jump(row as _, col as _));
-//         let modified = op(&mut t);
+        let mut t = TextArea::with_value(buf_before);
+        t.move_cursor_v2(CursorMove::Jump(row as _, col as _));
+        let modified = op(&mut t);
 
-//         let (row, col, buf_after, yank) = after;
-//         assert_eq!(t.lines(), buf_after);
-//         assert_eq!(t.cursor(), (row, col));
-//         assert_eq!(modified, buf_before != buf_after);
-//         assert_eq!(t.yank_text(), yank);
+        let (row, col, buf_after, yank) = after;
+        assert_eq!(t.text().as_str(), buf_after);
+        assert_eq!(t.cursor2(), (row, col));
+        assert_eq!(modified, buf_before != buf_after);
+        assert_eq!(t.yank_text(), yank);
 
-//         if modified {
-//             t.undo();
-//             assert_eq!(t.lines(), buf_before);
-//             t.redo();
-//             assert_eq!(t.lines(), buf_after);
-//         } else {
-//             assert_no_undo_redo(&mut t, "");
-//         }
-//     }
-// }
+        if modified {
+            t.undo();
+            assert_eq!(t.text().as_str(), buf_before);
+            // t.redo();
+            // assert_eq!(t.text().as_str(), buf_after);
+        } else {
+            assert_no_undo_redo(&mut t, "");
+        }
+    }
+}
 
-// #[test]
-// fn test_delete_newline() {
-//     let t = DeleteTester(&["a", "b", "c"], |t| t.delete_newline());
-//     t.test((0, 0), (0, 0, t.0, ""));
-//     t.test((1, 0), (0, 1, &["ab", "c"], ""));
-//     t.test((2, 0), (1, 1, &["a", "bc"], ""));
-// }
+#[test]
+fn test_delete_newline() {
+    let t = DeleteTester("a\nb\nc", |t| t.delete_newline());
+    t.test((0, 0), (0, 0, t.0, ""));
+    t.test((1, 0), (0, 1, "ab\nc", ""));
+    t.test((2, 0), (1, 1, "a\nbc", ""));
+}
 
 // #[test]
 // fn test_delete_char() {
