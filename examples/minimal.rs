@@ -30,8 +30,11 @@ fn main() -> io::Result<()> {
         })?;
         match crossterm::event::read()?.into() {
             Input { key: Key::Esc, .. } => break,
+            Input { key: Key::Char('a'), ctrl: true, .. } => {
+              textarea.select_all();
+            },
             input => {
-                textarea.input(input);
+                textarea.input_emacs(input);
             }
         }
     }
