@@ -1094,11 +1094,15 @@ impl<'a> TextArea<'a> {
             return true;
         }
 
-        if let Some(c) = self.text.as_str().chars().nth(self.cursor_v2) {
-            if c == '\n' {
-                self.delete_next_char();
-                return true;
-            }
+        if self
+            .text
+            .as_str()
+            .chars()
+            .nth(self.cursor_v2)
+            .is_some_and(|c| c == '\n')
+        {
+            self.delete_next_char();
+            return true;
         }
 
         let next_newline = self
@@ -1124,25 +1128,51 @@ impl<'a> TextArea<'a> {
     /// Delete string from cursor to head of the line. When the cursor is at head of line, the newline before the cursor
     /// will be removed. This method returns if some text was deleted or not in the textarea.
     /// ```
-    /// use tui_textarea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::from(["abcde"]);
+    /// let mut textarea = TextArea::with_value("abcde");
     ///
     /// // Move to 'c'
     /// textarea.move_cursor(CursorMove::Forward);
     /// textarea.move_cursor(CursorMove::Forward);
     ///
     /// textarea.delete_line_by_head();
-    /// assert_eq!(textarea.lines(), ["cde"]);
+    /// assert_eq!(textarea.text().as_str(), "cde");
     /// ```
     pub fn delete_line_by_head(&mut self) -> bool {
-        if self.delete_selection(false) {
+        if self.delete_selection_v2(false) {
             return true;
         }
-        if self.delete_piece(0, self.cursor.1) {
-            return true;
+
+        if self
+            .text
+            .as_str()
+            .chars()
+            .nth(self.cursor_v2.saturating_sub(1))
+            .is_some_and(|c| c == '\n')
+        {
+            return self.delete_char();
         }
-        self.delete_newline()
+
+        let prev_newline = self
+            .text
+            .as_str()
+            .chars()
+            .rev()
+            .skip(self.text.as_str().chars().count() - self.cursor_v2)
+            .position(|c| c == '\n');
+
+        let range = match prev_newline {
+            Some(i) => (self.cursor_v2 - i, self.cursor_v2),
+            None => (0, self.cursor_v2),
+        };
+
+        if range.0 == range.1 {
+            return false;
+        }
+
+        self.delete_range_v2(range.0, range.1, true);
+        true
     }
 
     /// Delete a word before cursor. Word boundary appears at spaces, punctuations, and others. For example `fn foo(a)`
@@ -2063,26 +2093,22 @@ impl<'a> TextArea<'a> {
     /// The first element of the pair is always smaller than the second one even when it is ahead of the cursor.
     /// When no text is selected, this method returns `None`.
     /// ```
-    /// use tui_textarea::TextArea;
-    /// use tui_textarea::CursorMove;
+    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::CursorMove;
     ///
-    /// let mut textarea = TextArea::from([
-    ///     "aaa",
-    ///     "bbb",
-    ///     "ccc",
-    /// ]);
+    /// let mut textarea = TextArea::from("aaa\nbbb\nccc")
     ///
     /// // It returns `None` when the text selection is not ongoing
-    /// assert_eq!(textarea.selection_range(), None);
+    /// assert_eq!(textarea.selection_range2(), None);
     ///
     /// textarea.start_selection();
-    /// assert_eq!(textarea.selection_range(), Some(((0, 0), (0, 0))));
+    /// assert_eq!(textarea.selection_range2(), Some(((0, 0), (0, 0))));
     ///
     /// textarea.move_cursor(CursorMove::Forward);
-    /// assert_eq!(textarea.selection_range(), Some(((0, 0), (0, 1))));
+    /// assert_eq!(textarea.selection_range2(), Some(((0, 0), (0, 1))));
     ///
     /// textarea.move_cursor(CursorMove::Down);
-    /// assert_eq!(textarea.selection_range(), Some(((0, 0), (1, 1))));
+    /// assert_eq!(textarea.selection_range2(), Some(((0, 0), (1, 1))));
     ///
     /// // Start selection at (1, 1)
     /// textarea.cancel_selection();
@@ -2090,19 +2116,18 @@ impl<'a> TextArea<'a> {
     ///
     /// // The first element of the pair is always smaller than the second one
     /// textarea.move_cursor(CursorMove::Back);
-    /// assert_eq!(textarea.selection_range(), Some(((1, 0), (1, 1))));
+    /// assert_eq!(textarea.selection_range2(), Some(((1, 0), (1, 1))));
     /// ```
-    pub fn selection_range(&self) -> Option<((usize, usize), (usize, usize))> {
-        self.selection_start.map(|pos| {
-            if pos > self.cursor {
-                (self.cursor, pos)
-            } else {
-                (pos, self.cursor)
-            }
+    pub fn selection_range2(&self) -> Option<((usize, usize), (usize, usize))> {
+        self.selection_range().map(|rng| {
+            (
+                util::cursor_for(self.text.as_str(), rng.0),
+                util::cursor_for(self.text.as_str(), rng.1),
+            )
         })
     }
 
-    pub fn selection_range_v2(&self) -> Option<(usize, usize)> {
+    pub fn selection_range(&self) -> Option<(usize, usize)> {
         self.selection_start_v2.map(|off| {
             if off > self.cursor_v2 {
                 (self.cursor_v2, off)

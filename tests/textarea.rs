@@ -30,7 +30,7 @@ fn assert_no_undo_redo<T: Debug>(t: &mut TextArea<'_>, context: T) {
         "buf after undo: {context:?}"
     );
     assert_eq!(t.cursor2(), pos, "pos after undo: {context:?}");
-    assert!(!t.redo(), "redo modification: {context:?}");
+    assert!(!t.redo_v2(), "redo modification: {context:?}");
     assert_eq!(
         t.text().as_str(),
         buf.as_str(),
@@ -1341,7 +1341,7 @@ fn test_delete_selection_on_delete_operations() {
         test_case!(delete_char()),
         test_case!(delete_next_char()),
         test_case!(delete_line_by_end()),
-        // test_case!(delete_line_by_head()),
+        test_case!(delete_line_by_head()),
         // test_case!(delete_word()),
         // test_case!(delete_next_word()),
         test_case!(delete_str(3)),
@@ -1382,8 +1382,8 @@ fn test_delete_selection_on_delete_edge_cases() {
         test_case!(delete_next_char(), (1, 2)),
         test_case!(delete_line_by_end(), (0, 2)),
         test_case!(delete_line_by_end(), (2, 2)),
-        // test_case!(delete_line_by_head(), (0, 0)),
-        // test_case!(delete_line_by_head(), (1, 0)),
+        test_case!(delete_line_by_head(), (0, 0)),
+        test_case!(delete_line_by_head(), (1, 0)),
         // test_case!(delete_word(), (0, 0)),
         // test_case!(delete_word(), (1, 0)),
         // test_case!(delete_next_word(), (2, 2)),
@@ -1535,43 +1535,42 @@ fn test_select_all() {
 //     assert!(!t.is_selecting());
 // }
 
-// #[test]
-// fn test_selection_range() {
-//     #[rustfmt::skip]
-//     let mut t = TextArea::with_value([
-//         "あいうえお",
-//         "Hello",
-//         "🐶🐱🐰🐮🐹",
-//         ].join("\n"));
+#[test]
+fn test_selection_range() {
+    #[rustfmt::skip]
+    let mut t = TextArea::with_value([
+        "あいうえお",
+        "Hello",
+        "🐶🐱🐰🐮🐹",
+        ].join("\n"));
 
-//     assert_eq!(t.selection_range_v2(), None);
+    assert_eq!(t.selection_range2(), None);
 
-//     for (from, to) in [
-//         ((0, 0), (0, 0)),
-//         ((2, 5), (2, 5)),
-//         ((0, 2), (2, 3)),
-//         ((2, 1), (0, 4)),
-//         ((0, 0), (2, 5)),
-//         ((2, 5), (0, 0)),
-//     ] {
-//         let (x, y) = from;
-//         t.move_cursor(CursorMove::Jump(x as _, y as _));
+    for (from, to) in [
+        ((0, 0), (0, 0)),
+        ((2, 5), (2, 5)),
+        ((0, 2), (2, 3)),
+        ((2, 1), (0, 4)),
+        ((0, 0), (2, 5)),
+        ((2, 5), (0, 0)),
+    ] {
+        let (x, y) = from;
+        t.move_cursor(CursorMove::Jump(x as _, y as _));
 
-//         t.start_selection_v2();
+        t.start_selection();
 
-//         let (x, y) = to;
-//         t.move_cursor(CursorMove::Jump(x as _, y as _));
+        let (x, y) = to;
+        t.move_cursor(CursorMove::Jump(x as _, y as _));
 
-//         // TODO: select range with 2d index
-//         let have = t.selection_range_v2().unwrap();
-//         let want = if from <= to { (from, to) } else { (to, from) };
-//         assert_eq!(have, want, "selection from {from:?} to {to:?}");
+        let have = t.selection_range2().unwrap();
+        let want = if from <= to { (from, to) } else { (to, from) };
+        assert_eq!(have, want, "selection from {from:?} to {to:?}");
 
-//         t.cancel_selection_v2();
-//         let range = t.selection_range_v2();
-//         assert_eq!(range, None, "selection from {from:?} to {to:?}");
-//     }
-// }
+        t.cancel_selection_v2();
+        let range = t.selection_range();
+        assert_eq!(range, None, "selection from {from:?} to {to:?}");
+    }
+}
 
 struct DeleteTester(&'static str, fn(&mut TextArea) -> bool);
 impl DeleteTester {
@@ -1592,8 +1591,8 @@ impl DeleteTester {
         if modified {
             t.undo();
             assert_eq!(t.text().as_str(), buf_before);
-            // t.redo();
-            // assert_eq!(t.text().as_str(), buf_after);
+            t.redo_v2();
+            assert_eq!(t.text().as_str(), buf_after);
         } else {
             assert_no_undo_redo(&mut t, "");
         }
@@ -1636,14 +1635,14 @@ fn test_delete_line_by_end() {
     t.test((1, 1), (1, 1, t.0, ""));
 }
 
-// #[test]
-// fn test_delete_line_by_head() {
-//     let t = DeleteTester(&["aaa bbb", "d"], |t| t.delete_line_by_head());
-//     t.test((0, 0), (0, 0, t.0, ""));
-//     t.test((0, 3), (0, 0, &[" bbb", "d"], "aaa"));
-//     t.test((0, 7), (0, 0, &["", "d"], "aaa bbb"));
-//     t.test((1, 0), (0, 7, &["aaa bbbd"], "")); // Newline is not yanked
-// }
+#[test]
+fn test_delete_line_by_head() {
+    let t = DeleteTester("aaa bbb\nd", |t| t.delete_line_by_head());
+    t.test((0, 0), (0, 0, t.0, ""));
+    t.test((0, 3), (0, 0, " bbb\nd", "aaa"));
+    t.test((0, 7), (0, 0, "\nd", "aaa bbb"));
+    t.test((1, 0), (0, 7, "aaa bbbd", "")); // Newline is not yanked
+}
 
 // #[test]
 // fn test_delete_word() {

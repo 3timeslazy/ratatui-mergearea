@@ -28,6 +28,15 @@ pub fn find_line_start(offset: usize, chars: &[char]) -> usize {
     current_line_start
 }
 
+pub fn find_line_start_v2(text: &str, offset: usize) -> usize {
+    let mut current_line_start = offset;
+    let chars = text.chars().collect::<Vec<char>>();
+    while current_line_start > 0 && chars[current_line_start - 1] != '\n' {
+        current_line_start -= 1;
+    }
+    current_line_start
+}
+
 pub fn find_line_end(offset: usize, chars: &[char]) -> usize {
     let mut line_end = offset;
     while line_end < chars.len() && chars[line_end] != '\n' {
@@ -36,3 +45,21 @@ pub fn find_line_end(offset: usize, chars: &[char]) -> usize {
     line_end - 1
 }
 
+pub fn cursor_for(text: &str, offset: usize) -> (usize, usize) {
+    let mut row = 0;
+    let mut col = 0;
+
+    for c in text.chars().take(offset) {
+        match c {
+            '\n' => {
+                row += 1;
+                col = 0;
+            }
+            _ => {
+                col += 1;
+            }
+        }
+    }
+
+    (row, col)
+}
