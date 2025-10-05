@@ -1,4 +1,4 @@
-use ratatui_mergearea::{Input, Key, TextArea};
+use ratatui_mergearea::{Input, Key, MergeArea};
 
 // Sanity test for checking textarea does not crash against all combination of inputs
 // #[test]
@@ -54,7 +54,7 @@ use ratatui_mergearea::{Input, Key, TextArea};
 //         push_all_modifiers_combination(&mut inputs, k);
 //     }
 
-//     let mut t = TextArea::from(["abc", "def", "ghi", "jkl", "mno", "pqr"]);
+//     let mut t = MergeArea::from(["abc", "def", "ghi", "jkl", "mno", "pqr"]);
 
 //     for input in inputs {
 //         t.input(input.clone());
@@ -68,7 +68,7 @@ use ratatui_mergearea::{Input, Key, TextArea};
 
 // #[test]
 // fn test_insert_multi_code_unit_emoji() {
-//     let mut t = TextArea::default();
+//     let mut t = MergeArea::default();
 //     for c in "👨‍👩‍👧‍👦".chars() {
 //         let input = Input {
 //             key: Key::Char(c),

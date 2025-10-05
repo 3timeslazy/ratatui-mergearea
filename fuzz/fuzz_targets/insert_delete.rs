@@ -2,12 +2,12 @@
 
 use arbitrary::{Arbitrary as _, Result, Unstructured};
 use libfuzzer_sys::fuzz_target;
-use ratatui_mergearea::{CursorMove, TextArea};
+use ratatui_mergearea::{CursorMove, MergeArea};
 use ratatui_mergearea_bench::{dummy_terminal, TerminalExt};
 
 fn fuzz(data: &[u8]) -> Result<()> {
     let mut term = dummy_terminal();
-    let mut textarea = TextArea::default();
+    let mut textarea = MergeArea::default();
     let mut data = Unstructured::new(data);
     for i in 0..100 {
         textarea.move_cursor(CursorMove::arbitrary(&mut data)?);

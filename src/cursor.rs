@@ -18,9 +18,9 @@ use std::cmp;
 pub enum CursorMove {
     /// Move cursor forward by one character. When the cursor is at the end of line, it moves to the head of next line.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("abc");
+    /// let mut textarea = MergeArea::with_value("abc");
     ///
     /// textarea.move_cursor(CursorMove::Forward);
     /// assert_eq!(textarea.cursor2(), (0, 1));
@@ -31,9 +31,9 @@ pub enum CursorMove {
     /// Move cursor backward by one character. When the cursor is at the head of line, it moves to the end of previous
     /// line.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("abc");
+    /// let mut textarea = MergeArea::with_value("abc");
     ///
     /// textarea.move_cursor(CursorMove::Forward);
     /// textarea.move_cursor(CursorMove::Forward);
@@ -43,9 +43,9 @@ pub enum CursorMove {
     Back,
     /// Move cursor up by one line.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("a\nb\nc");
+    /// let mut textarea = MergeArea::with_value("a\nb\nc");
     ///
     /// textarea.move_cursor(CursorMove::Down);
     /// textarea.move_cursor(CursorMove::Down);
@@ -55,9 +55,9 @@ pub enum CursorMove {
     Up,
     /// Move cursor down by one line.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("a\nb\nc");
+    /// let mut textarea = MergeArea::with_value("a\nb\nc");
     ///
     /// textarea.move_cursor(CursorMove::Down);
     /// assert_eq!(textarea.cursor2(), (1, 0));
@@ -67,9 +67,9 @@ pub enum CursorMove {
     Down,
     /// Move cursor to the head of line. When the cursor is at the head of line, it moves to the end of previous line.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("abc");
+    /// let mut textarea = MergeArea::with_value("abc");
     ///
     /// textarea.move_cursor(CursorMove::Forward);
     /// textarea.move_cursor(CursorMove::Forward);
@@ -79,9 +79,9 @@ pub enum CursorMove {
     Head,
     /// Move cursor to the end of line. When the cursor is at the end of line, it moves to the head of next line.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("abc");
+    /// let mut textarea = MergeArea::with_value("abc");
     ///
     /// textarea.move_cursor(CursorMove::End);
     /// assert_eq!(textarea.cursor2(), (0, 3));
@@ -89,9 +89,9 @@ pub enum CursorMove {
     End,
     /// Move cursor to the top of lines.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("a\nb\nc");
+    /// let mut textarea = MergeArea::with_value("a\nb\nc");
     ///
     /// textarea.move_cursor(CursorMove::Down);
     /// textarea.move_cursor(CursorMove::Down);
@@ -101,9 +101,9 @@ pub enum CursorMove {
     Top,
     /// Move cursor to the bottom of lines.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("a\nb\nc");
+    /// let mut textarea = MergeArea::with_value("a\nb\nc");
     ///
     /// textarea.move_cursor(CursorMove::Bottom);
     /// assert_eq!(textarea.cursor2(), (2, 0));
@@ -113,9 +113,9 @@ pub enum CursorMove {
     /// `fn foo(a)` consists of words `fn`, `foo`, `(`, `a`, `)`. When the cursor is at the end of line, it moves to the
     /// head of next line.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("aaa bbb ccc");
+    /// let mut textarea = MergeArea::with_value("aaa bbb ccc");
     ///
     /// textarea.move_cursor(CursorMove::WordForward);
     /// assert_eq!(textarea.cursor2(), (0, 4));
@@ -127,9 +127,9 @@ pub enum CursorMove {
     /// `fn foo(a)` consists of words `fn`, `foo`, `(`, `a`, `)`. When the cursor is at the end of line, it moves to the
     /// end of the first word of the next line. This is similar to the 'e' mapping of Vim in normal mode.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("aaa bbb [[[ccc]]]\n\n ddd");
+    /// let mut textarea = MergeArea::with_value("aaa bbb [[[ccc]]]\n\n ddd");
     ///
     ///
     /// textarea.move_cursor(CursorMove::WordEnd);
@@ -150,9 +150,9 @@ pub enum CursorMove {
     /// `fn foo(a)` consists of words `fn`, `foo`, `(`, `a`, `)`.When the cursor is at the head of line, it moves to
     /// the end of previous line.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("aaa bbb ccc");
+    /// let mut textarea = MergeArea::with_value("aaa bbb ccc");
     ///
     /// textarea.move_cursor(CursorMove::End);
     /// textarea.move_cursor(CursorMove::WordBack);
@@ -169,9 +169,9 @@ pub enum CursorMove {
     /// When there are 10 lines, jumping to row 15 moves the cursor to the last line (row is 9 in the case). When there
     /// are 10 characters in the line, jumping to col 15 moves the cursor to end of the line (col is 10 in the case).
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("aaaa\nbbbb\ncccc");
+    /// let mut textarea = MergeArea::with_value("aaaa\nbbbb\ncccc");
     ///
     /// textarea.move_cursor(CursorMove::Jump(1, 2));
     /// assert_eq!(textarea.cursor2(), (1, 2));
@@ -191,14 +191,14 @@ pub enum CursorMove {
     /// # use ratatui::buffer::Buffer;
     /// # use ratatui::layout::Rect;
     /// # use ratatui::widgets::Widget as _;
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
     /// // Let's say terminal height is 8.
     ///
     /// // Create textarea with 20 lines "0", "1", "2", "3", ...
     /// // The viewport is displaying from line 1 to line 8.
     /// let text = (0..20).map(|i| i.to_string()).collect::<Vec<_>>().join("\n");
-    /// let mut textarea = TextArea::with_value(text);
+    /// let mut textarea = MergeArea::with_value(text);
     /// # // Call `render` at least once to populate terminal size
     /// # let r = Rect { x: 0, y: 0, width: 24, height: 8 };
     /// # let mut b = Buffer::empty(r.clone());

@@ -9,7 +9,7 @@ use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::{Block, Borders};
 use ratatui::Terminal;
-use ratatui_mergearea::{Input, Key, TextArea};
+use ratatui_mergearea::{Input, Key, MergeArea};
 use std::io;
 
 fn inactivate(editor: &mut Editor<'_>) {
@@ -118,7 +118,7 @@ fn main() -> io::Result<()> {
 
 struct Editor<'a> {
     doc: AutoCommit,
-    textarea: TextArea<'a>,
+    textarea: MergeArea<'a>,
 }
 
 #[derive(Hydrate, Reconcile)]
@@ -132,7 +132,7 @@ impl Editor<'_> {
 
         Self {
             doc,
-            textarea: TextArea::new(state.text),
+            textarea: MergeArea::new(state.text),
         }
     }
 

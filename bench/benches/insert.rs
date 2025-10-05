@@ -1,12 +1,12 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
-use ratatui_mergearea::{CursorMove, Input, Key, TextArea};
+use ratatui_mergearea::{CursorMove, Input, Key, MergeArea};
 use ratatui_mergearea_bench::{dummy_terminal, TerminalExt, LOREM, SEED};
 
 #[inline]
 fn append_lorem(repeat: usize) -> usize {
-    let mut textarea = TextArea::default();
+    let mut textarea = MergeArea::default();
     let mut term = dummy_terminal();
     for _ in 0..repeat {
         for line in LOREM {
@@ -34,7 +34,7 @@ fn append_lorem(repeat: usize) -> usize {
 #[inline]
 fn random_lorem(repeat: usize) -> usize {
     let mut rng = SmallRng::from_seed(SEED);
-    let mut textarea = TextArea::default();
+    let mut textarea = MergeArea::default();
     let mut term = dummy_terminal();
 
     for _ in 0..repeat {
@@ -68,7 +68,7 @@ fn random_lorem(repeat: usize) -> usize {
 
 #[inline]
 fn append_long_lorem(repeat: usize) -> usize {
-    let mut textarea = TextArea::default();
+    let mut textarea = MergeArea::default();
     let mut term = dummy_terminal();
 
     for _ in 0..repeat {
@@ -112,7 +112,7 @@ fn random(c: &mut Criterion) {
     });
 }
 
-// Inserting a long line is slower than multiple short lines into `TextArea`
+// Inserting a long line is slower than multiple short lines into `MergeArea`
 fn long(c: &mut Criterion) {
     c.bench_function("insert::long::1_lorem", |b| {
         b.iter(|| black_box(append_long_lorem(1)))

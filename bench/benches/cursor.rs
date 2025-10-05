@@ -1,5 +1,5 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use ratatui_mergearea::{CursorMove, TextArea};
+use ratatui_mergearea::{CursorMove, MergeArea};
 use ratatui_mergearea_bench::{dummy_terminal, TerminalExt, LOREM};
 
 #[derive(Clone, Copy)]
@@ -21,16 +21,16 @@ impl Restore {
     }
 }
 
-fn prepare_textarea() -> TextArea<'static> {
+fn prepare_textarea() -> MergeArea<'static> {
     let mut lines = Vec::with_capacity(LOREM.len() * 2 + 1);
     lines.extend(LOREM.iter().map(|s| s.to_string()));
     lines.push("".to_string());
     lines.extend(LOREM.iter().map(|s| s.to_string()));
-    TextArea::with_value(lines.join("\n"))
+    MergeArea::with_value(lines.join("\n"))
 }
 
 fn run(
-    mut textarea: TextArea<'_>,
+    mut textarea: MergeArea<'_>,
     moves: &[CursorMove],
     restore: Restore,
     repeat: usize,

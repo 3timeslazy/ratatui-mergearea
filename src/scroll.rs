@@ -5,9 +5,9 @@ use serde::{Deserialize, Serialize};
 /// Specify how to scroll the textarea.
 ///
 /// This type is marked as `#[non_exhaustive]` since more variations may be supported in the future. Note that the cursor will
-/// not move until it goes out the viewport. See also: [`TextArea::scroll`]
+/// not move until it goes out the viewport. See also: [`MergeArea::scroll`]
 ///
-/// [`TextArea::scroll`]: https://docs.rs/tui-textarea/latest/tui_textarea/struct.TextArea.html#method.scroll
+/// [`MergeArea::scroll`]: https://docs.rs/tui-textarea/latest/tui_textarea/struct.MergeArea.html#method.scroll
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -20,13 +20,13 @@ pub enum Scrolling {
     /// # use ratatui::buffer::Buffer;
     /// # use ratatui::layout::Rect;
     /// # use ratatui::widgets::Widget as _;
-    /// use ratatui_mergearea::{TextArea, Scrolling};
+    /// use ratatui_mergearea::{MergeArea, Scrolling};
     ///
     /// // Let's say terminal height is 8.
     ///
     /// // Create textarea with 20 lines "0", "1", "2", "3", ...
     /// let text = (0..20).map(|i| i.to_string()).collect::<Vec<_>>().join("\n");
-    /// let mut textarea = TextArea::with_value(text);
+    /// let mut textarea = MergeArea::with_value(text);
     /// # // Call `render` at least once to populate terminal size
     /// # let r = Rect { x: 0, y: 0, width: 24, height: 8 };
     /// # let mut b = Buffer::empty(r.clone());
@@ -47,13 +47,13 @@ pub enum Scrolling {
     /// # use ratatui::buffer::Buffer;
     /// # use ratatui::layout::Rect;
     /// # use ratatui::widgets::Widget as _;
-    /// use ratatui_mergearea::{TextArea, Scrolling};
+    /// use ratatui_mergearea::{MergeArea, Scrolling};
     ///
     /// // Let's say terminal height is 8.
     ///
     /// // Create textarea with 20 lines "0", "1", "2", "3", ...
     /// let text = (0..20).map(|i| i.to_string()).collect::<Vec<_>>().join("\n");
-    /// let mut textarea = TextArea::with_value(text);
+    /// let mut textarea = MergeArea::with_value(text);
     /// # // Call `render` at least once to populate terminal size
     /// # let r = Rect { x: 0, y: 0, width: 24, height: 8 };
     /// # let mut b = Buffer::empty(r.clone());
@@ -74,13 +74,13 @@ pub enum Scrolling {
     /// # use ratatui::buffer::Buffer;
     /// # use ratatui::layout::Rect;
     /// # use ratatui::widgets::Widget as _;
-    /// use ratatui_mergearea::{TextArea, Scrolling, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, Scrolling, CursorMove};
     ///
     /// // Let's say terminal height is 8.
     ///
     /// // Create textarea with 20 lines "0", "1", "2", "3", ...
     /// let text = (0..20).map(|i| i.to_string()).collect::<Vec<_>>().join("\n");
-    /// let mut textarea = TextArea::with_value(text);
+    /// let mut textarea = MergeArea::with_value(text);
     /// # // Call `render` at least once to populate terminal size
     /// # let r = Rect { x: 0, y: 0, width: 24, height: 8 };
     /// # let mut b = Buffer::empty(r.clone());
@@ -105,13 +105,13 @@ pub enum Scrolling {
     /// # use ratatui::buffer::Buffer;
     /// # use ratatui::layout::Rect;
     /// # use ratatui::widgets::Widget as _;
-    /// use ratatui_mergearea::{TextArea, Scrolling};
+    /// use ratatui_mergearea::{MergeArea, Scrolling};
     ///
     /// // Let's say terminal height is 8.
     ///
     /// // Create textarea with 10 lines "0", "1", "2", "3", ...
     /// let text = (0..20).map(|i| i.to_string()).collect::<Vec<_>>().join("\n") + "\n";
-    /// let mut textarea = TextArea::with_value(text);
+    /// let mut textarea = MergeArea::with_value(text);
     /// # // Call `render` at least once to populate terminal size
     /// # let r = Rect { x: 0, y: 0, width: 24, height: 8 };
     /// # let mut b = Buffer::empty(r.clone());
@@ -132,13 +132,13 @@ pub enum Scrolling {
     /// # use ratatui::buffer::Buffer;
     /// # use ratatui::layout::Rect;
     /// # use ratatui::widgets::Widget as _;
-    /// use ratatui_mergearea::{TextArea, Scrolling, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, Scrolling, CursorMove};
     ///
     /// // Let's say terminal height is 8.
     ///
     /// // Create textarea with 20 lines "0", "1", "2", "3", ...
     /// let text = (0..20).map(|i| i.to_string()).collect::<Vec<_>>().join("\n");
-    /// let mut textarea = TextArea::with_value(text);
+    /// let mut textarea = MergeArea::with_value(text);
     /// # // Call `render` at least once to populate terminal size
     /// # let r = Rect { x: 0, y: 0, width: 24, height: 8 };
     /// # let mut b = Buffer::empty(r.clone());

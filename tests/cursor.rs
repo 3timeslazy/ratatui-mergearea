@@ -1,4 +1,4 @@
-use ratatui_mergearea::{CursorMove, TextArea};
+use ratatui_mergearea::{CursorMove, MergeArea};
 
 const BOTTOM_RIGHT: CursorMove = CursorMove::Jump(u16::MAX, u16::MAX);
 
@@ -6,7 +6,7 @@ const BOTTOM_RIGHT: CursorMove = CursorMove::Jump(u16::MAX, u16::MAX);
 fn empty_textarea() {
     use CursorMove::*;
 
-    let mut t = TextArea::default();
+    let mut t = MergeArea::default();
     for m in [
         Forward,
         Back,
@@ -57,7 +57,7 @@ fn forward() {
             ],
         ),
     ] {
-        let mut t = TextArea::with_value(text.join("\n"));
+        let mut t = MergeArea::with_value(text.join("\n"));
 
         for pos in positions {
             t.move_cursor(CursorMove::Forward);
@@ -96,7 +96,7 @@ fn back() {
             ],
         ),
     ] {
-        let mut t = TextArea::with_value(text.join("\n"));
+        let mut t = MergeArea::with_value(text.join("\n"));
         t.move_cursor(BOTTOM_RIGHT);
 
         for pos in positions {
@@ -110,7 +110,7 @@ fn back() {
 fn up() {
     for text in [["abc", "def", "ghi"], ["あいう", "🐶🐱🐰", "👪🤟🏿👩🏻‍❤️‍💋‍👨🏾"]]
     {
-        let mut t = TextArea::with_value(text.join("\n"));
+        let mut t = MergeArea::with_value(text.join("\n"));
 
         for col in 0..=3 {
             let mut row = 2;
@@ -130,7 +130,7 @@ fn up() {
 #[test]
 fn up_trim() {
     for text in [["", "a", "bcd", "efgh"], ["", "👪", "🐶!🐱", "あ?い!"]] {
-        let mut t = TextArea::with_value(text.join("\n"));
+        let mut t = MergeArea::with_value(text.join("\n"));
         t.move_cursor(CursorMove::Jump(3, 3));
 
         for expected in [(2, 3), (1, 1), (0, 0)] {
@@ -144,7 +144,7 @@ fn up_trim() {
 fn down() {
     for text in [["abc", "def", "ghi"], ["あいう", "🐶🐱🐰", "👪🤟🏿👩🏻‍❤️‍💋‍👨🏾"]]
     {
-        let mut t = TextArea::with_value(text.join("\n"));
+        let mut t = MergeArea::with_value(text.join("\n"));
 
         for col in 0..=3 {
             let mut row = 0;
@@ -164,7 +164,7 @@ fn down() {
 #[test]
 fn down_trim() {
     for text in [["abcd", "efg", "h", ""], ["あ?い!", "🐶!🐱", "👪", ""]] {
-        let mut t = TextArea::with_value(text.join("\n"));
+        let mut t = MergeArea::with_value(text.join("\n"));
         t.move_cursor(CursorMove::Jump(0, 3));
 
         for expected in [(1, 3), (2, 1), (3, 0)] {
@@ -177,7 +177,7 @@ fn down_trim() {
 #[test]
 fn head() {
     for text in ["efg\nh\n", "あいう\n👪\n"] {
-        let mut t = TextArea::with_value(text);
+        let mut t = MergeArea::with_value(text);
         let lines = t
             .text()
             .as_str()
@@ -199,7 +199,7 @@ fn head() {
 #[test]
 fn end() {
     for text in [["efg", "h", ""], ["あいう", "👪", ""]] {
-        let mut t = TextArea::with_value(text.join("\n"));
+        let mut t = MergeArea::with_value(text.join("\n"));
         for row in 0..t.lines().len() {
             let len = match row {
                 0 => 3,
@@ -220,7 +220,7 @@ fn end() {
 fn top() {
     for text in ["abc\ndef\nghi", "あいう\n🐶🐱🐰\n👪🤟🏿👩🏻‍❤️‍💋‍👨🏾"]
     {
-        let mut t = TextArea::with_value(text);
+        let mut t = MergeArea::with_value(text);
 
         for row in 0..=2 {
             for col in 0..=3 {
@@ -246,7 +246,7 @@ fn top_trim() {
                 .map(|s| s.to_string())
                 .collect::<Vec<String>>()
                 .join("\n");
-            TextArea::with_value(str)
+            MergeArea::with_value(str)
         };
         t.move_cursor(CursorMove::Jump(u16::MAX, u16::MAX));
         t.move_cursor(CursorMove::Top);
@@ -259,7 +259,7 @@ fn top_trim() {
 fn bottom() {
     for text in [["abc", "def", "ghi"], ["あいう", "🐶🐱🐰", "👪🤟🏿👩🏻‍❤️‍💋‍👨🏾"]]
     {
-        let mut t = TextArea::with_value(text.join("\n"));
+        let mut t = MergeArea::with_value(text.join("\n"));
         for row in 0..=2 {
             for col in 0..=3 {
                 t.move_cursor(CursorMove::Jump(row, col));
@@ -278,7 +278,7 @@ fn bottom_trim() {
         &["ef", "bcd", "a"][..],
         &["犬", ""][..],
     ] {
-        let mut t = TextArea::with_value(lines.join("\n"));
+        let mut t = MergeArea::with_value(lines.join("\n"));
         t.move_cursor(CursorMove::Jump(0, u16::MAX));
         t.move_cursor(CursorMove::Bottom);
         let text_lines = t.text().as_str().lines().collect::<Vec<&str>>();
@@ -334,7 +334,7 @@ fn word_end() {
         ),
         (&["aaa йу𝑥 🐶🐱"][..], &[(0, 2), (0, 6), (0, 9)][..]),
     ] {
-        let mut t = TextArea::with_value(lines.join("\n"));
+        let mut t = MergeArea::with_value(lines.join("\n"));
         for pos in positions {
             t.move_cursor(CursorMove::WordEnd);
             assert_eq!(t.cursor2(), *pos, "{:?}", t.text());
@@ -384,7 +384,7 @@ fn word_back() {
         (&["a aa", "b!!!"][..], &[(1, 1), (1, 0), (0, 2), (0, 0)][..]),
         (&["aaa йу𝑥 🐶🐱"][..], &[(0, 8), (0, 4), (0, 0)][..]),
     ] {
-        let mut t = TextArea::with_value(lines.join("\n"));
+        let mut t = MergeArea::with_value(lines.join("\n"));
         t.move_cursor(CursorMove::Jump(u16::MAX, u16::MAX));
 
         for pos in positions {

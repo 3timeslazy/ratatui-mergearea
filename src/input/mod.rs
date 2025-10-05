@@ -58,7 +58,7 @@ pub enum Key {
     MouseScrollDown,
     /// Virtual key to scroll up by mouse
     MouseScrollUp,
-    /// An invalid key input (this key is always ignored by [`TextArea`](crate::TextArea))
+    /// An invalid key input (this key is always ignored by [`MergeArea`](crate::MergeArea))
     Null,
 }
 
@@ -73,7 +73,7 @@ impl Default for Key {
 /// When `crossterm`, `termion`, `termwiz` features are enabled, converting respective key input types into this
 /// `Input` type is defined.
 /// ```no_run
-/// use ratatui_mergearea::{TextArea, Input, Key};
+/// use ratatui_mergearea::{MergeArea, Input, Key};
 /// use crossterm::event::{Event, read};
 ///
 /// let event = read().unwrap();
@@ -91,9 +91,9 @@ impl Default for Key {
 /// Creating `Input` instance directly can cause backend-agnostic input as follows.
 ///
 /// ```
-/// use ratatui_mergearea::{TextArea, Input, Key};
+/// use ratatui_mergearea::{MergeArea, Input, Key};
 ///
-/// let mut textarea = TextArea::default();
+/// let mut textarea = MergeArea::default();
 ///
 /// // Input Ctrl+A
 /// textarea.input(Input {

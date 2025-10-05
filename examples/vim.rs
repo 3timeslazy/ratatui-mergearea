@@ -6,7 +6,7 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::{Block, Borders};
 use ratatui::Terminal;
-use ratatui_mergearea::{CursorMove, Input, Key, Scrolling, TextArea};
+use ratatui_mergearea::{CursorMove, Input, Key, Scrolling, MergeArea};
 use std::env;
 use std::fmt;
 use std::fs;
@@ -84,7 +84,7 @@ impl Vim {
         }
     }
 
-    fn transition(&self, input: Input, textarea: &mut TextArea<'_>) -> Transition {
+    fn transition(&self, input: Input, textarea: &mut MergeArea<'_>) -> Transition {
         if input.key == Key::Null {
             return Transition::Nop;
         }
@@ -397,7 +397,7 @@ impl Vim {
 fn main() -> io::Result<()> {
     let mut term = ratatui::init();
 
-    let mut textarea = TextArea::default();
+    let mut textarea = MergeArea::default();
 
     textarea.set_block(Mode::Normal.block());
     textarea.set_cursor_style(Mode::Normal.cursor_style());

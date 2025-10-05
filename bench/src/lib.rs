@@ -6,7 +6,7 @@ use ratatui::buffer::Cell;
 use ratatui::layout::{Position, Size};
 use ratatui::Terminal;
 use std::io;
-use ratatui_mergearea::TextArea;
+use ratatui_mergearea::MergeArea;
 
 pub const LOREM: &[&str] = &[
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do",
@@ -121,12 +121,12 @@ pub fn dummy_terminal() -> Terminal<DummyBackend> {
 }
 
 pub trait TerminalExt {
-    fn draw_textarea(&mut self, textarea: &TextArea<'_>);
+    fn draw_textarea(&mut self, textarea: &MergeArea<'_>);
 }
 
 impl TerminalExt for Terminal<DummyBackend> {
     #[inline]
-    fn draw_textarea(&mut self, textarea: &TextArea<'_>) {
+    fn draw_textarea(&mut self, textarea: &MergeArea<'_>) {
         self.draw(|f| f.render_widget(textarea, f.area())).unwrap();
     }
 }

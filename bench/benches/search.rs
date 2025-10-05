@@ -1,9 +1,9 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use ratatui_mergearea::TextArea;
+use ratatui_mergearea::MergeArea;
 use ratatui_mergearea_bench::{dummy_terminal, TerminalExt, LOREM};
 
 #[inline]
-fn run(pat: &str, mut textarea: TextArea<'_>, forward: bool) {
+fn run(pat: &str, mut textarea: MergeArea<'_>, forward: bool) {
     let mut term = dummy_terminal();
     textarea.set_search_pattern(pat).unwrap();
     term.draw_textarea(&textarea);
@@ -20,7 +20,7 @@ fn run(pat: &str, mut textarea: TextArea<'_>, forward: bool) {
 }
 
 fn short(c: &mut Criterion) {
-    let textarea = TextArea::with_value(LOREM.join("\n"));
+    let textarea = MergeArea::with_value(LOREM.join("\n"));
     c.bench_function("search::forward_short", |b| {
         b.iter(|| run(r"\w*i\w*", textarea.clone(), true))
     });
@@ -34,7 +34,7 @@ fn long(c: &mut Criterion) {
     for _ in 0..10 {
         lines.push(LOREM.join("\n"));
     }
-    let textarea = TextArea::with_value(lines.join("\n"));
+    let textarea = MergeArea::with_value(lines.join("\n"));
     c.bench_function("search::forward_long", |b| {
         b.iter(|| run(r"[A-Z]\w*", textarea.clone(), true))
     });

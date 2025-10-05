@@ -57,18 +57,18 @@ impl fmt::Display for YankText {
 
 /// A type to manage state of textarea. These are some important methods:
 ///
-/// - [`TextArea::default`] creates an empty textarea.
-/// - [`TextArea::new`] creates a textarea with given text lines.
-/// - [`TextArea::from`] creates a textarea from an iterator of lines.
-/// - [`TextArea::input`] handles key input.
-/// - [`TextArea::lines`] returns line texts.
+/// - [`MergeArea::default`] creates an empty textarea.
+/// - [`MergeArea::new`] creates a textarea with given text lines.
+/// - [`MergeArea::from`] creates a textarea from an iterator of lines.
+/// - [`MergeArea::input`] handles key input.
+/// - [`MergeArea::lines`] returns line texts.
 /// ```
-/// use ratatui_mergearea::{TextArea, Input, Key};
+/// use ratatui_mergearea::{MergeArea, Input, Key};
 /// use ratatui::backend::CrosstermBackend;
 /// use ratatui::layout::{Constraint, Direction, Layout};
 /// use ratatui::Terminal;
 ///
-/// let mut textarea = TextArea::default();
+/// let mut textarea = MergeArea::default();
 ///
 /// // Input 'a'
 /// let input = Input { key: Key::Char('a'), ctrl: false, alt: false, shift: false };
@@ -84,9 +84,9 @@ impl fmt::Display for YankText {
 /// use ratatui::backend::CrosstermBackend;
 /// use ratatui::layout::{Constraint, Direction, Layout};
 /// use ratatui::Terminal;
-/// use ratatui_mergearea::TextArea;
+/// use ratatui_mergearea::MergeArea;
 ///
-/// let mut textarea = TextArea::default();
+/// let mut textarea = MergeArea::default();
 ///
 /// let layout = Layout::default()
 ///     .direction(Direction::Vertical)
@@ -104,7 +104,7 @@ impl fmt::Display for YankText {
 /// }
 /// ```
 #[derive(Clone, Debug)]
-pub struct TextArea<'a> {
+pub struct MergeArea<'a> {
     lines: Vec<String>,
     block: Option<Block<'a>>,
     style: Style,
@@ -133,22 +133,22 @@ pub struct TextArea<'a> {
     selection_start_v2: Option<usize>,
 }
 
-/// Create [`TextArea`] instance with empty text content.
+/// Create [`MergeArea`] instance with empty text content.
 /// ```
-/// use ratatui_mergearea::TextArea;
+/// use ratatui_mergearea::MergeArea;
 ///
-/// let textarea = TextArea::default();
+/// let textarea = MergeArea::default();
 /// assert_eq!(textarea.text().as_str(), "");
 /// assert!(textarea.is_empty());
 /// ```
-impl Default for TextArea<'_> {
+impl Default for MergeArea<'_> {
     fn default() -> Self {
         Self::new(autosurgeon::Text::default())
     }
 }
 
-impl<'a> TextArea<'a> {
-    /// Create [`TextArea`] from an existing [`autosurgeon::Text`] object.
+impl<'a> MergeArea<'a> {
+    /// Create [`MergeArea`] from an existing [`autosurgeon::Text`] object.
     pub fn new(text: autosurgeon::Text) -> Self {
         Self {
             lines: vec!["".to_string()],
@@ -180,7 +180,7 @@ impl<'a> TextArea<'a> {
     }
 
     pub fn with_value<S: AsRef<str>>(value: S) -> Self {
-        TextArea::new(autosurgeon::Text::with_value(value))
+        MergeArea::new(autosurgeon::Text::with_value(value))
     }
 
     pub fn set_text(&mut self, text: autosurgeon::Text) {
@@ -197,9 +197,9 @@ impl<'a> TextArea<'a> {
     /// [the module document](./index.html).
     /// This method returns if the input modified text contents or not in the textarea.
     /// ```ignore
-    /// use ratatui_mergearea::{TextArea, Key, Input};
+    /// use ratatui_mergearea::{MergeArea, Key, Input};
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// // Handle crossterm key events
     /// let event: crossterm::event::Event = ...;
@@ -709,9 +709,9 @@ impl<'a> TextArea<'a> {
 
     /// Insert a single character at current cursor position.
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// textarea.insert_char('a');
     /// assert_eq!(textarea.text().as_str(), "a");
@@ -737,9 +737,9 @@ impl<'a> TextArea<'a> {
 
     /// Insert a string at current cursor position. This method returns if some text was inserted or not in the textarea.
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// textarea.insert_str("hello");
     /// assert_eq!(textarea.text().as_str(), "hello");
@@ -849,15 +849,15 @@ impl<'a> TextArea<'a> {
     /// length of the string. Newlines at the end of lines are counted in the number. This method returns if some text
     /// was deleted or not.
     /// ```ignore
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("🐱🐶🐰🐮");
+    /// let mut textarea = MergeArea::with_value("🐱🐶🐰🐮");
     /// textarea.move_cursor(CursorMove::Forward);
     ///
     /// textarea.delete_str(2);
     /// assert_eq!(textarea.text().as_str(), "🐱🐮");
     ///
-    /// let mut textarea = TextArea::with_value("🐱\n🐶\n🐰\n🐮");
+    /// let mut textarea = MergeArea::with_value("🐱\n🐶\n🐰\n🐮");
     /// textarea.move_cursor(CursorMove::Down);
     ///
     /// textarea.delete_str(4); // Deletes 🐶, \n, 🐰, \n
@@ -916,9 +916,9 @@ impl<'a> TextArea<'a> {
     /// Insert a tab at current cursor position. Note that this method does nothing when the tab length is 0. This
     /// method returns if a tab string was inserted or not in the textarea.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("hi");
+    /// let mut textarea = MergeArea::with_value("hi");
     ///
     /// textarea.move_cursor(CursorMove::End); // Move to the end of line
     ///
@@ -956,9 +956,9 @@ impl<'a> TextArea<'a> {
 
     /// Insert a newline at current cursor position.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("hi");
+    /// let mut textarea = MergeArea::with_value("hi");
     ///
     /// textarea.move_cursor(CursorMove::Forward);
     /// textarea.insert_newline();
@@ -980,9 +980,9 @@ impl<'a> TextArea<'a> {
     /// Delete a newline from **head** of current cursor line. This method returns if a newline was deleted or not in
     /// the textarea. When some text is selected, it is deleted instead.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("hello\nworld");
+    /// let mut textarea = MergeArea::with_value("hello\nworld");
     ///
     /// textarea.move_cursor(CursorMove::Down);
     /// textarea.delete_newline();
@@ -1011,9 +1011,9 @@ impl<'a> TextArea<'a> {
     /// removed. This method returns if some text was deleted or not in the textarea. When some text is selected, it is
     /// deleted instead.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("abc");
+    /// let mut textarea = MergeArea::with_value("abc");
     ///
     /// textarea.move_cursor(CursorMove::Forward);
     /// textarea.delete_char();
@@ -1043,9 +1043,9 @@ impl<'a> TextArea<'a> {
     /// Delete one character next to cursor. When the cursor is at end of line, the newline next to the cursor will be
     /// removed. This method returns if a character was deleted or not in the textarea.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("abc");
+    /// let mut textarea = MergeArea::with_value("abc");
     ///
     /// textarea.move_cursor(CursorMove::Forward);
     /// textarea.delete_next_char();
@@ -1068,9 +1068,9 @@ impl<'a> TextArea<'a> {
     /// Delete string from cursor to end of the line. When the cursor is at end of line, the newline next to the cursor
     /// is removed. This method returns if some text was deleted or not in the textarea.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("abcde");
+    /// let mut textarea = MergeArea::with_value("abcde");
     ///
     /// // Move to 'c'
     /// textarea.move_cursor(CursorMove::Forward);
@@ -1118,9 +1118,9 @@ impl<'a> TextArea<'a> {
     /// Delete string from cursor to head of the line. When the cursor is at head of line, the newline before the cursor
     /// will be removed. This method returns if some text was deleted or not in the textarea.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("abcde");
+    /// let mut textarea = MergeArea::with_value("abcde");
     ///
     /// // Move to 'c'
     /// textarea.move_cursor(CursorMove::Forward);
@@ -1172,9 +1172,9 @@ impl<'a> TextArea<'a> {
     /// This method returns if some text was deleted or not in the textarea.
     ///
     /// ```ignore
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("aaa bbb ccc");
+    /// let mut textarea = MergeArea::with_value("aaa bbb ccc");
     ///
     /// textarea.move_cursor(CursorMove::End);
     ///
@@ -1194,9 +1194,9 @@ impl<'a> TextArea<'a> {
     /// This method returns if some text was deleted or not in the textarea.
     ///
     /// ```ignore
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::with_value("aaa bbb ccc");
+    /// let mut textarea = MergeArea::with_value("aaa bbb ccc");
     ///
     /// textarea.delete_next_word();
     /// assert_eq!(textarea.text().as_str(), " bbb ccc");
@@ -1207,13 +1207,13 @@ impl<'a> TextArea<'a> {
        todo!()
     }
 
-    /// Paste a string previously deleted by [`TextArea::delete_line_by_head`], [`TextArea::delete_line_by_end`],
-    /// [`TextArea::delete_word`], [`TextArea::delete_next_word`]. This method returns if some text was inserted or not
+    /// Paste a string previously deleted by [`MergeArea::delete_line_by_head`], [`MergeArea::delete_line_by_end`],
+    /// [`MergeArea::delete_word`], [`MergeArea::delete_next_word`]. This method returns if some text was inserted or not
     /// in the textarea.
     /// ```ignore
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("aaa bbb ccc");
+    /// let mut textarea = MergeArea::with_value("aaa bbb ccc");
     ///
     /// textarea.delete_next_word();
     /// textarea.move_cursor(CursorMove::End);
@@ -1231,9 +1231,9 @@ impl<'a> TextArea<'a> {
 
     /// Start text selection at the cursor position. If text selection is already ongoing, the start position is reset.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("aaa bbb ccc");
+    /// let mut textarea = MergeArea::with_value("aaa bbb ccc");
     ///
     /// textarea.start_selection();
     /// textarea.move_cursor(CursorMove::WordForward);
@@ -1246,9 +1246,9 @@ impl<'a> TextArea<'a> {
 
     /// Stop the current text selection. This method does nothing if text selection is not ongoing.
     /// ```ignore
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("aaa bbb ccc");
+    /// let mut textarea = MergeArea::with_value("aaa bbb ccc");
     ///
     /// textarea.start_selection();
     /// textarea.move_cursor(CursorMove::WordForward);
@@ -1271,9 +1271,9 @@ impl<'a> TextArea<'a> {
     /// Select the entire text. Cursor moves to the end of the text buffer. When text selection is already ongoing,
     /// it is canceled.
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("aaa\nbbb\nccc");
+    /// let mut textarea = MergeArea::with_value("aaa\nbbb\nccc");
     ///
     /// textarea.select_all();
     ///
@@ -1290,9 +1290,9 @@ impl<'a> TextArea<'a> {
 
     /// Return if text selection is ongoing or not.
     /// ```ignore
-    /// use ratatui_mergearea::{TextArea};
+    /// use ratatui_mergearea::{MergeArea};
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// assert!(!textarea.is_selecting());
     /// textarea.start_selection();
@@ -1317,10 +1317,10 @@ impl<'a> TextArea<'a> {
 
     /// Set the style used for text selection. The default style is light blue.
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     /// use ratatui::style::{Style, Color};
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// // Change the selection color from the default to Red
     /// textarea.set_selection_style(Style::default().bg(Color::Red));
@@ -1332,10 +1332,10 @@ impl<'a> TextArea<'a> {
 
     /// Get the style used for text selection.
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     /// use ratatui::style::{Style, Color};
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// assert_eq!(textarea.selection_style(), Style::default().bg(Color::LightBlue));
     /// ```
@@ -1381,11 +1381,11 @@ impl<'a> TextArea<'a> {
     }
 
     /// Copy the selection text to the yank buffer. When nothing is selected, this method does nothing.
-    /// To get the yanked text, use [`TextArea::yank_text`].
+    /// To get the yanked text, use [`MergeArea::yank_text`].
     /// ```
-    /// use ratatui_mergearea::{TextArea, Key, Input, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, Key, Input, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("Hello World");
+    /// let mut textarea = MergeArea::with_value("Hello World");
     ///
     /// // Start text selection at 'W'
     /// textarea.move_cursor(CursorMove::WordForward);
@@ -1407,11 +1407,11 @@ impl<'a> TextArea<'a> {
 
     /// Cut the selected text and place it in the yank buffer. This method returns whether the text was modified.
     /// The cursor will move to the start position of the text selection.
-    /// To get the yanked text, use [`TextArea::yank_text`].
+    /// To get the yanked text, use [`MergeArea::yank_text`].
     /// ```
-    /// use ratatui_mergearea::{TextArea, Key, Input, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, Key, Input, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("Hello World");
+    /// let mut textarea = MergeArea::with_value("Hello World");
     ///
     /// // Start text selection at 'W'
     /// textarea.move_cursor(CursorMove::WordForward);
@@ -1447,9 +1447,9 @@ impl<'a> TextArea<'a> {
     /// Move the cursor to the position specified by the [`CursorMove`] parameter. For each kind of cursor moves, see
     /// the document of [`CursorMove`].
     /// ```
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("abc\ndef");
+    /// let mut textarea = MergeArea::with_value("abc\ndef");
     ///
     /// textarea.move_cursor(CursorMove::Forward);
     /// assert_eq!(textarea.cursor2(), (0, 1));
@@ -1475,9 +1475,9 @@ impl<'a> TextArea<'a> {
 
     /// Undo the last modification. This method returns if the undo modified text contents or not in the textarea.
     /// ```ignore
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("abc def");
+    /// let mut textarea = MergeArea::with_value("abc def");
     ///
     /// textarea.delete_next_word();
     /// assert_eq!(textarea.text().as_str(), " def");
@@ -1496,9 +1496,9 @@ impl<'a> TextArea<'a> {
 
     /// Redo the last undo change. This method returns if the redo modified text contents or not in the textarea.
     /// ```ignore
-    /// use ratatui_mergearea::{TextArea, CursorMove};
+    /// use ratatui_mergearea::{MergeArea, CursorMove};
     ///
-    /// let mut textarea = TextArea::with_value("abc def");
+    /// let mut textarea = MergeArea::with_value("abc def");
     ///
     /// textarea.delete_next_word();
     /// assert_eq!(textarea.text().as_str(), " def");
@@ -1588,9 +1588,9 @@ impl<'a> TextArea<'a> {
     /// Set the style of textarea. By default, textarea is not styled.
     /// ```
     /// use ratatui::style::{Style, Color};
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     /// let style = Style::default().fg(Color::Red);
     /// textarea.set_style(style);
     /// assert_eq!(textarea.style(), style);
@@ -1606,10 +1606,10 @@ impl<'a> TextArea<'a> {
 
     /// Set the block of textarea. By default, no block is set.
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     /// use ratatui::widgets::{Block, Borders};
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     /// let block = Block::default().borders(Borders::ALL).title("Block Title");
     /// textarea.set_block(block);
     /// assert!(textarea.block().is_some());
@@ -1618,12 +1618,12 @@ impl<'a> TextArea<'a> {
         self.block = Some(block);
     }
 
-    /// Remove the block of textarea which was set by [`TextArea::set_block`].
+    /// Remove the block of textarea which was set by [`MergeArea::set_block`].
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     /// use ratatui::widgets::{Block, Borders};
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     /// let block = Block::default().borders(Borders::ALL).title("Block Title");
     /// textarea.set_block(block);
     /// textarea.remove_block();
@@ -1640,9 +1640,9 @@ impl<'a> TextArea<'a> {
 
     /// Set the length of tab character. Setting 0 disables tab inputs.
     /// ```
-    /// use ratatui_mergearea::{TextArea, Input, Key};
+    /// use ratatui_mergearea::{MergeArea, Input, Key};
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     /// let tab_input = Input { key: Key::Tab, ctrl: false, alt: false, shift: false };
     ///
     /// textarea.set_tab_length(8);
@@ -1665,9 +1665,9 @@ impl<'a> TextArea<'a> {
     /// Set if a hard tab is used or not for indent. When `true` is set, typing a tab key inserts a hard tab instead of
     /// spaces. By default, hard tab is disabled.
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// textarea.set_hard_tab_indent(true);
     /// textarea.insert_tab();
@@ -1679,9 +1679,9 @@ impl<'a> TextArea<'a> {
 
     /// Get if a hard tab is used for indent or not.
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// assert!(!textarea.hard_tab_indent());
     /// textarea.set_hard_tab_indent(true);
@@ -1693,9 +1693,9 @@ impl<'a> TextArea<'a> {
 
     /// Get a string for indent. It consists of spaces by default. When hard tab is enabled, it is a tab character.
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// assert_eq!(textarea.indent(), "    ");
     /// textarea.set_tab_length(2);
@@ -1725,9 +1725,9 @@ impl<'a> TextArea<'a> {
     /// cursor line, set the default style.
     /// ```
     /// use ratatui::style::{Style, Color};
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// let style = Style::default().fg(Color::Red);
     /// textarea.set_cursor_line_style(style);
@@ -1750,9 +1750,9 @@ impl<'a> TextArea<'a> {
     /// the default style.
     /// ```
     /// use ratatui::style::{Style, Color};
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// // Show line numbers in dark gray background
     /// let style = Style::default().bg(Color::DarkGray);
@@ -1763,13 +1763,13 @@ impl<'a> TextArea<'a> {
         self.line_number_style = Some(style);
     }
 
-    /// Remove the style of line number which was set by [`TextArea::set_line_number_style`]. After calling this
+    /// Remove the style of line number which was set by [`MergeArea::set_line_number_style`]. After calling this
     /// method, Line numbers will no longer be shown.
     /// ```
     /// use ratatui::style::{Style, Color};
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// textarea.set_line_number_style(Style::default().bg(Color::DarkGray));
     /// textarea.remove_line_number();
@@ -1786,11 +1786,11 @@ impl<'a> TextArea<'a> {
 
     /// Set the placeholder text. The text is set in the textarea when no text is input. Setting a non-empty string `""`
     /// enables the placeholder. The default value is an empty string so the placeholder is disabled by default.
-    /// To customize the text style, see [`TextArea::set_placeholder_style`].
+    /// To customize the text style, see [`MergeArea::set_placeholder_style`].
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     /// assert_eq!(textarea.placeholder_text(), "");
     /// assert!(textarea.placeholder_style().is_none());
     ///
@@ -1805,9 +1805,9 @@ impl<'a> TextArea<'a> {
     /// Set the style of the placeholder text. The default style is a dark gray text.
     /// ```
     /// use ratatui::style::{Style, Color};
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     /// assert_eq!(textarea.placeholder_style(), None); // When the placeholder is disabled
     ///
     /// textarea.set_placeholder_text("Enter your message"); // Enable placeholder by setting non-empty text
@@ -1822,9 +1822,9 @@ impl<'a> TextArea<'a> {
 
     /// Get the placeholder text. An empty string means the placeholder is disabled. The default value is an empty string.
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let textarea = TextArea::default();
+    /// let textarea = MergeArea::default();
     /// assert_eq!(textarea.placeholder_text(), "");
     /// ```
     pub fn placeholder_text(&self) -> &'_ str {
@@ -1834,9 +1834,9 @@ impl<'a> TextArea<'a> {
     /// Get the placeholder style. When the placeholder text is empty, it returns `None` since the placeholder is disabled.
     /// The default style is a dark gray text.
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     /// assert_eq!(textarea.placeholder_style(), None);
     ///
     /// textarea.set_placeholder_text("hello");
@@ -1853,9 +1853,9 @@ impl<'a> TextArea<'a> {
     /// Specify a character masking the text. All characters in the textarea will be replaced by this character.
     /// This API is useful for making a kind of credentials form such as a password input.
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// textarea.set_mask_char('*');
     /// assert_eq!(textarea.mask_char(), Some('*'));
@@ -1866,11 +1866,11 @@ impl<'a> TextArea<'a> {
         self.mask = Some(mask);
     }
 
-    /// Clear the masking character previously set by [`TextArea::set_mask_char`].
+    /// Clear the masking character previously set by [`MergeArea::set_mask_char`].
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// textarea.set_mask_char('*');
     /// assert_eq!(textarea.mask_char(), Some('*'));
@@ -1883,9 +1883,9 @@ impl<'a> TextArea<'a> {
 
     /// Get the character to mask text. When no character is set, `None` is returned.
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// assert_eq!(textarea.mask_char(), None);
     /// textarea.set_mask_char('*');
@@ -1899,9 +1899,9 @@ impl<'a> TextArea<'a> {
     /// cursor line hides a cursor.
     /// ```
     /// use ratatui::style::{Style, Color};
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// let style = Style::default().bg(Color::Red);
     /// textarea.set_cursor_style(style);
@@ -1920,9 +1920,9 @@ impl<'a> TextArea<'a> {
     /// never be empty because an empty text means a slice containing one empty line. This is correct since any text
     /// file must end with a newline.
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     /// assert_eq!(textarea.text().as_str(), "");
     ///
     /// textarea.insert_char('a');
@@ -1940,9 +1940,9 @@ impl<'a> TextArea<'a> {
 
     /// Get the current cursor position. 0-base character-wise (row, col) cursor position.
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     /// assert_eq!(textarea.cursor2(), (0, 0));
     ///
     /// textarea.insert_char('a');
@@ -1987,10 +1987,10 @@ impl<'a> TextArea<'a> {
     /// The first element of the pair is always smaller than the second one even when it is ahead of the cursor.
     /// When no text is selected, this method returns `None`.
     /// ```ignore
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     /// use ratatui_mergearea::CursorMove;
     ///
-    /// let mut textarea = TextArea::with_value("aaa\nbbb\nccc")
+    /// let mut textarea = MergeArea::with_value("aaa\nbbb\nccc")
     ///
     /// // It returns `None` when the text selection is not ongoing
     /// assert_eq!(textarea.selection_range2(), None);
@@ -2035,9 +2035,9 @@ impl<'a> TextArea<'a> {
     /// disabled because those alignments don't work well with line numbers.
     /// ```
     /// use ratatui::layout::Alignment;
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// textarea.set_alignment(Alignment::Center);
     /// assert_eq!(textarea.alignment(), Alignment::Center);
@@ -2052,9 +2052,9 @@ impl<'a> TextArea<'a> {
     /// Get current text alignment. The default alignment is [`Alignment::Left`].
     /// ```
     /// use ratatui::layout::Alignment;
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// assert_eq!(textarea.alignment(), Alignment::Left);
     /// ```
@@ -2064,31 +2064,31 @@ impl<'a> TextArea<'a> {
 
     /// Check if the textarea has a empty content.
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let textarea = TextArea::default();
+    /// let textarea = MergeArea::default();
     /// assert!(textarea.is_empty());
     ///
-    /// let textarea = TextArea::with_value("hello");
+    /// let textarea = MergeArea::with_value("hello");
     /// assert!(!textarea.is_empty());
     /// ```
     pub fn is_empty(&self) -> bool {
         self.text.as_str().len() == 0
     }
 
-    /// Get the yanked text. Text is automatically yanked when deleting strings by [`TextArea::delete_line_by_head`],
-    /// [`TextArea::delete_line_by_end`], [`TextArea::delete_word`], [`TextArea::delete_next_word`],
-    /// [`TextArea::delete_str`], [`TextArea::copy`], and [`TextArea::cut`]. When multiple lines were yanked, they are
+    /// Get the yanked text. Text is automatically yanked when deleting strings by [`MergeArea::delete_line_by_head`],
+    /// [`MergeArea::delete_line_by_end`], [`MergeArea::delete_word`], [`MergeArea::delete_next_word`],
+    /// [`MergeArea::delete_str`], [`MergeArea::copy`], and [`MergeArea::cut`]. When multiple lines were yanked, they are
     /// always joined with `\n`.
     /// ```ignore
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::with_value("abc");
+    /// let mut textarea = MergeArea::with_value("abc");
     /// textarea.delete_next_word();
     /// assert_eq!(textarea.yank_text(), "abc");
     ///
     /// // Multiple lines are joined with \n
-    /// let mut textarea = TextArea::with_value("abc\ndef");
+    /// let mut textarea = MergeArea::with_value("abc\ndef");
     /// textarea.delete_str(5);
     /// assert_eq!(textarea.yank_text(), "abc\nd");
     /// ```
@@ -2097,12 +2097,12 @@ impl<'a> TextArea<'a> {
         self.yank.to_string()
     }
 
-    /// Set a yanked text. The text can be inserted by [`TextArea::paste`]. `\n` and `\r\n` are recognized as newline
+    /// Set a yanked text. The text can be inserted by [`MergeArea::paste`]. `\n` and `\r\n` are recognized as newline
     /// but `\r` isn't.
     /// ```ignore
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// textarea.set_yank_text("hello\nworld");
     /// textarea.paste();
@@ -2121,7 +2121,7 @@ impl<'a> TextArea<'a> {
 
     /// Set a regular expression pattern for text search. Setting an empty string stops the text search.
     /// When a valid pattern is set, all matches will be highlighted in the textarea. Note that the cursor does not
-    /// move. To move the cursor, use [`TextArea::search_forward`] and [`TextArea::search_back`].
+    /// move. To move the cursor, use [`MergeArea::search_forward`] and [`MergeArea::search_back`].
     ///
     /// Grammar of regular expression follows [regex crate](https://docs.rs/regex/latest/regex). Patterns don't match
     /// to newlines so match passes across no newline.
@@ -2129,9 +2129,9 @@ impl<'a> TextArea<'a> {
     /// When the pattern is invalid, the search pattern will not be updated and an error will be returned.
     ///
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::from(["hello, world", "goodbye, world"]);
+    /// let mut textarea = MergeArea::from(["hello, world", "goodbye, world"]);
     ///
     /// // Search "world"
     /// textarea.set_search_pattern("world").unwrap();
@@ -2154,13 +2154,13 @@ impl<'a> TextArea<'a> {
         self.search.set_pattern(query.as_ref())
     }
 
-    /// Get a regular expression which was set by [`TextArea::set_search_pattern`]. When no text search is ongoing, this
+    /// Get a regular expression which was set by [`MergeArea::set_search_pattern`]. When no text search is ongoing, this
     /// method returns `None`.
     ///
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// assert!(textarea.search_pattern().is_none());
     /// textarea.set_search_pattern("hello+").unwrap();
@@ -2173,7 +2173,7 @@ impl<'a> TextArea<'a> {
         self.search.pat.as_ref()
     }
 
-    /// Search the pattern set by [`TextArea::set_search_pattern`] forward and move the cursor to the next match
+    /// Search the pattern set by [`MergeArea::set_search_pattern`] forward and move the cursor to the next match
     /// position based on the current cursor position. Text search wraps around a text buffer. It returns `true` when
     /// some match was found. Otherwise it returns `false`.
     ///
@@ -2182,9 +2182,9 @@ impl<'a> TextArea<'a> {
     /// move to the next match ignoring the match at the current position.
     ///
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::from(["hello", "helloo", "hellooo"]);
+    /// let mut textarea = MergeArea::from(["hello", "helloo", "hellooo"]);
     ///
     /// textarea.set_search_pattern("hello+").unwrap();
     ///
@@ -2221,7 +2221,7 @@ impl<'a> TextArea<'a> {
         }
     }
 
-    /// Search the pattern set by [`TextArea::set_search_pattern`] backward and move the cursor to the next match
+    /// Search the pattern set by [`MergeArea::set_search_pattern`] backward and move the cursor to the next match
     /// position based on the current cursor position. Text search wraps around a text buffer. It returns `true` when
     /// some match was found. Otherwise it returns `false`.
     ///
@@ -2230,9 +2230,9 @@ impl<'a> TextArea<'a> {
     /// move to the next match ignoring the match at the current position.
     ///
     /// ```
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::with_value("hello\nhelloo\nhellooo");
+    /// let mut textarea = MergeArea::with_value("hello\nhelloo\nhellooo");
     ///
     /// textarea.set_search_pattern("hello+").unwrap();
     ///
@@ -2269,9 +2269,9 @@ impl<'a> TextArea<'a> {
     ///
     /// ```
     /// use ratatui::style::{Style, Color};
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let textarea = TextArea::default();
+    /// let textarea = MergeArea::default();
     ///
     /// assert_eq!(textarea.search_style(), Style::default().bg(Color::Blue));
     /// ```
@@ -2285,9 +2285,9 @@ impl<'a> TextArea<'a> {
     ///
     /// ```
     /// use ratatui::style::{Style, Color};
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
-    /// let mut textarea = TextArea::default();
+    /// let mut textarea = MergeArea::default();
     ///
     /// let red_bg = Style::default().bg(Color::Red);
     /// textarea.set_search_style(red_bg);
@@ -2308,12 +2308,12 @@ impl<'a> TextArea<'a> {
     /// # use ratatui::buffer::Buffer;
     /// # use ratatui::layout::Rect;
     /// # use ratatui::widgets::Widget as _;
-    /// use ratatui_mergearea::TextArea;
+    /// use ratatui_mergearea::MergeArea;
     ///
     /// // Let's say terminal height is 8.
     ///
     /// // Create textarea with 20 lines "0", "1", "2", "3", ...
-    /// let mut textarea = TextArea::with_value((0..20).into_iter().map(|i| i.to_string()).collect());
+    /// let mut textarea = MergeArea::with_value((0..20).into_iter().map(|i| i.to_string()).collect());
     /// # // Call `render` at least once to populate terminal size
     /// # let r = Rect { x: 0, y: 0, width: 24, height: 8 };
     /// # let mut b = Buffer::empty(r.clone());

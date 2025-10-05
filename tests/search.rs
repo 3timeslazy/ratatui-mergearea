@@ -1,11 +1,11 @@
 #![cfg(feature = "search")]
 
-use ratatui_mergearea::{CursorMove, TextArea};
+use ratatui_mergearea::{CursorMove, MergeArea};
 
 // #[test]
 // fn search_lines_forward() {
 //     #[rustfmt::skip]
-//     let mut textarea = TextArea::from([
+//     let mut textarea = MergeArea::from([
 //         "fooo foo",
 //         "foo fo foo fooo",
 //         "foooo",
@@ -28,7 +28,7 @@ use ratatui_mergearea::{CursorMove, TextArea};
 // #[test]
 // fn search_lines_backward() {
 //     #[rustfmt::skip]
-//     let mut textarea = TextArea::from([
+//     let mut textarea = MergeArea::from([
 //         "fooo foo",
 //         "foo fo foo fooo",
 //         "foooo",
@@ -50,7 +50,7 @@ use ratatui_mergearea::{CursorMove, TextArea};
 
 // #[test]
 // fn search_forward_within_line() {
-//     let mut textarea = TextArea::from(["foo fo foo fooo"]);
+//     let mut textarea = MergeArea::from(["foo fo foo fooo"]);
 
 //     // Move to 'f' on 'fo'
 //     textarea.move_cursor(CursorMove::Jump(0, 4));
@@ -68,7 +68,7 @@ use ratatui_mergearea::{CursorMove, TextArea};
 
 // #[test]
 // fn search_backward_within_line() {
-//     let mut textarea = TextArea::from(["foo fo foo fooo"]);
+//     let mut textarea = MergeArea::from(["foo fo foo fooo"]);
 
 //     // Move to 'f' on 'fo'
 //     textarea.move_cursor(CursorMove::Jump(0, 4));
@@ -86,7 +86,7 @@ use ratatui_mergearea::{CursorMove, TextArea};
 
 // #[test]
 // fn search_not_found() {
-//     let mut textarea = TextArea::from(["fo fo fo fo"]);
+//     let mut textarea = MergeArea::from(["fo fo fo fo"]);
 //     textarea.set_search_pattern("foo+").unwrap();
 
 //     assert!(!textarea.search_forward(false));
@@ -95,7 +95,7 @@ use ratatui_mergearea::{CursorMove, TextArea};
 
 // #[test]
 // fn accept_cursor_position() {
-//     let mut textarea = TextArea::from(["foooo fooooooo"]);
+//     let mut textarea = MergeArea::from(["foooo fooooooo"]);
 //     textarea.set_search_pattern("foo+").unwrap();
 
 //     let cursor = textarea.cursor();
@@ -107,7 +107,7 @@ use ratatui_mergearea::{CursorMove, TextArea};
 
 // #[test]
 // fn set_search_pattern() {
-//     let mut textarea = TextArea::from(["foo"]);
+//     let mut textarea = MergeArea::from(["foo"]);
 
 //     assert!(textarea.search_pattern().is_none());
 //     assert!(!textarea.search_forward(true));

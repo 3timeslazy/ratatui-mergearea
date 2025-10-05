@@ -1,4 +1,4 @@
-use ratatui_mergearea::{CursorMove, TextArea};
+use ratatui_mergearea::{CursorMove, MergeArea};
 use std::cmp;
 use std::fmt::Debug;
 
@@ -6,7 +6,7 @@ fn assert_undo_redo<T: Debug>(
     before_pos: (usize, usize),
     before_buf: &str,
     after_buf: &str,
-    t: &mut TextArea<'_>,
+    t: &mut MergeArea<'_>,
     context: T,
 ) {
     let after_pos = t.cursor2();
@@ -20,7 +20,7 @@ fn assert_undo_redo<T: Debug>(
     // assert_eq!(t.cursor2(), after_pos, "pos after redo: {context:?}");
 }
 
-fn assert_no_undo_redo<T: Debug>(t: &mut TextArea<'_>, context: T) {
+fn assert_no_undo_redo<T: Debug>(t: &mut MergeArea<'_>, context: T) {
     let pos = t.cursor2();
     let buf = t.text().clone();
     assert!(!t.undo(), "undo modification: {context:?}");
@@ -54,7 +54,7 @@ fn test_insert_soft_tab() {
         // ("あい", 1, "あ  い", 2),
     ] {
         let (input, col, expected, width) = test;
-        let mut t = TextArea::with_value(input);
+        let mut t = MergeArea::with_value(input);
         t.move_cursor(CursorMove::Jump(0, col));
         assert!(t.insert_tab(), "{test:?}");
         assert_eq!(t.text().as_str(), expected, "{test:?}");
@@ -65,13 +65,13 @@ fn test_insert_soft_tab() {
 
 #[test]
 fn test_insert_hard_tab() {
-    let mut t = TextArea::default();
+    let mut t = MergeArea::default();
     t.set_hard_tab_indent(true);
     assert!(t.insert_tab());
     assert_eq!(t.cursor2(), (0, 1));
     assert_undo_redo((0, 0), "", "\t", &mut t, "");
 
-    let mut t = TextArea::default();
+    let mut t = MergeArea::default();
     t.set_hard_tab_indent(true);
     t.set_tab_length(0);
     t.insert_tab();
@@ -92,7 +92,7 @@ fn test_insert_char() {
 
     for test in tests {
         let (col, ch, want) = test;
-        let mut t = TextArea::with_value("ab");
+        let mut t = MergeArea::with_value("ab");
         t.move_cursor(CursorMove::Jump(0, col));
         t.insert_char(ch);
         assert_eq!(t.text().as_str(), want, "{test:?}");
@@ -109,7 +109,7 @@ fn test_insert_char() {
 #[test]
 fn test_insert_str_one_line() {
     for i in 0..="ab".len() {
-        let mut t = TextArea::with_value("ab");
+        let mut t = MergeArea::with_value("ab");
         t.move_cursor(CursorMove::Jump(0, i as u16));
         assert!(t.insert_str("x"), "{i}");
 
@@ -121,7 +121,7 @@ fn test_insert_str_one_line() {
         assert_undo_redo((0, i), "ab", want, &mut t, i);
     }
 
-    let mut t = TextArea::default();
+    let mut t = MergeArea::default();
     assert!(t.insert_str("x"));
     assert_eq!(t.cursor2(), (0, 1));
     assert_undo_redo((0, 0), "", "x", &mut t, "");
@@ -129,7 +129,7 @@ fn test_insert_str_one_line() {
 
 #[test]
 fn test_insert_str_empty_line() {
-    let mut t = TextArea::with_value("ab");
+    let mut t = MergeArea::with_value("ab");
     assert!(!t.insert_str(""));
     assert_eq!(t.text().as_str(), "ab");
     assert_eq!(t.cursor2(), (0, 0));
@@ -606,7 +606,7 @@ fn test_insert_str_multiple_lines() {
         let expected = expected.join("\n");
         let before = before.join("\n");
 
-        let mut t = TextArea::with_value(&before);
+        let mut t = MergeArea::with_value(&before);
         let (row, col) = before_pos;
         t.move_cursor(CursorMove::Jump(row as _, col as _));
 
@@ -621,11 +621,11 @@ fn test_insert_str_multiple_lines() {
 #[test]
 fn test_delete_str_nothing() {
     for i in 0..="ab".len() {
-        let mut t = TextArea::with_value("ab");
+        let mut t = MergeArea::with_value("ab");
         assert!(!t.delete_str(0), "{i}");
         assert_eq!(t.cursor2(), (0, 0));
     }
-    let mut t = TextArea::default();
+    let mut t = MergeArea::default();
     assert!(!t.delete_str(0));
     assert_eq!(t.cursor2(), (0, 0));
 }
@@ -634,7 +634,7 @@ fn test_delete_str_nothing() {
 fn test_delete_str_within_line() {
     for i in 0.."abc".len() {
         for j in 1..="abc".len() - i {
-            let mut t = TextArea::with_value("abc");
+            let mut t = MergeArea::with_value("abc");
             t.move_cursor(CursorMove::Jump(0, i as _));
             assert!(t.delete_str(j), "at {i}, size={j}");
 
@@ -930,7 +930,7 @@ fn test_delete_str_multiple_lines() {
         let before = before.join("\n");
         let after = after.join("\n");
 
-        let mut t = TextArea::with_value(&before);
+        let mut t = MergeArea::with_value(&before);
         t.move_cursor(CursorMove::Jump(row as _, col as _));
 
         assert!(t.delete_str(chars), "{test:?}");
@@ -951,7 +951,7 @@ fn test_delete_str_multiple_lines() {
 fn test_copy_single_line() {
     for i in 0..="abc".len() {
         for j in i.."abc".len() {
-            let mut t = TextArea::with_value("abc");
+            let mut t = MergeArea::with_value("abc");
 
             t.move_cursor(CursorMove::Jump(0, i as u16));
             t.start_selection();
@@ -970,7 +970,7 @@ fn test_copy_single_line() {
 // fn test_cut_single_line() {
 //     for i in 0.."abc".len() {
 //         for j in i + 1.."abc".len() {
-//             let mut t = TextArea::with_value("abc");
+//             let mut t = MergeArea::with_value("abc");
 
 //             t.move_cursor(CursorMove::Jump(0, i as u16));
 //             t.start_selection_v2();
@@ -997,8 +997,8 @@ fn test_copy_single_line() {
 // fn test_copy_cut_empty() {
 //     for row in 0..=2 {
 //         for col in 0..=2 {
-//             let check = |f: fn(&mut TextArea<'_>)| {
-//                 let mut t = TextArea::from(["ab", "cd", "ef"]);
+//             let check = |f: fn(&mut MergeArea<'_>)| {
+//                 let mut t = MergeArea::from(["ab", "cd", "ef"]);
 //                 t.move_cursor(CursorMove::Jump(row, col));
 //                 t.start_selection();
 //                 t.move_cursor(CursorMove::Jump(row, col));
@@ -1264,7 +1264,7 @@ fn test_copy_single_line() {
 //         let (init_text, (srow, scol), (erow, ecol), yanked, after_cut) = test;
 
 //         {
-//             let mut t = TextArea::from(init_text.iter().map(|s| s.to_string()));
+//             let mut t = MergeArea::from(init_text.iter().map(|s| s.to_string()));
 //             t.move_cursor(CursorMove::Jump(srow as _, scol as _));
 //             t.start_selection();
 //             t.move_cursor(CursorMove::Jump(erow as _, ecol as _));
@@ -1277,7 +1277,7 @@ fn test_copy_single_line() {
 //         }
 
 //         {
-//             let mut t = TextArea::from(init_text.iter().map(|s| s.to_string()));
+//             let mut t = MergeArea::from(init_text.iter().map(|s| s.to_string()));
 //             t.move_cursor(CursorMove::Jump(srow as _, scol as _));
 //             t.start_selection();
 //             t.move_cursor(CursorMove::Jump(erow as _, ecol as _));
@@ -1295,7 +1295,7 @@ fn test_copy_single_line() {
 
 //         // Reverse positions
 //         {
-//             let mut t = TextArea::from(init_text.iter().map(|s| s.to_string()));
+//             let mut t = MergeArea::from(init_text.iter().map(|s| s.to_string()));
 //             t.move_cursor(CursorMove::Jump(erow as _, ecol as _));
 //             t.start_selection();
 //             t.move_cursor(CursorMove::Jump(srow as _, scol as _));
@@ -1308,7 +1308,7 @@ fn test_copy_single_line() {
 //         }
 
 //         {
-//             let mut t = TextArea::from(init_text.iter().map(|s| s.to_string()));
+//             let mut t = MergeArea::from(init_text.iter().map(|s| s.to_string()));
 //             t.move_cursor(CursorMove::Jump(erow as _, ecol as _));
 //             t.start_selection();
 //             t.move_cursor(CursorMove::Jump(srow as _, scol as _));
@@ -1332,7 +1332,7 @@ fn test_delete_selection_on_delete_operations() {
         ($name:ident($($args:expr),*)) => {
             (
                 stringify!($name),
-                (|t| t.$name($($args),*)) as fn(&mut TextArea) -> bool,
+                (|t| t.$name($($args),*)) as fn(&mut MergeArea) -> bool,
             )
         };
     }
@@ -1348,7 +1348,7 @@ fn test_delete_selection_on_delete_operations() {
     ];
 
     for (n, f) in tests {
-        let mut t = TextArea::new(autosurgeon::Text::with_value("ab\ncd\nef"));
+        let mut t = MergeArea::new(autosurgeon::Text::with_value("ab\ncd\nef"));
         t.move_cursor(CursorMove::Jump(0, 1));
         t.start_selection();
         t.move_cursor(CursorMove::Jump(2, 1));
@@ -1368,7 +1368,7 @@ fn test_delete_selection_on_delete_edge_cases() {
         ($name:ident($($args:expr),*), $pos:expr) => {
             (
                 stringify!($name),
-                (|t| t.$name($($args),*)) as fn(&mut TextArea) -> bool,
+                (|t| t.$name($($args),*)) as fn(&mut MergeArea) -> bool,
                 $pos,
             )
         };
@@ -1393,7 +1393,7 @@ fn test_delete_selection_on_delete_edge_cases() {
     ];
 
     for (n, f, pos) in tests {
-        let mut t = TextArea::with_value("ab\ncd\nef");
+        let mut t = MergeArea::with_value("ab\ncd\nef");
         t.move_cursor(CursorMove::Jump(1, 1));
         t.start_selection();
         t.move_cursor(CursorMove::Jump(pos.0 as _, pos.1 as _));
@@ -1414,7 +1414,7 @@ fn test_delete_selection_on_delete_edge_cases() {
 //                 stringify!($name),
 //                 (|t| {
 //                     t.$name($($args),*);
-//                 }) as fn(&mut TextArea),
+//                 }) as fn(&mut MergeArea),
 //                 &$want as &str,
 //             )
 //         };
@@ -1428,7 +1428,7 @@ fn test_delete_selection_on_delete_edge_cases() {
 //     ];
 
 //     for (n, f, after) in tests {
-//         let mut t = TextArea::with_value("ab\ncd\nef");
+//         let mut t = MergeArea::with_value("ab\ncd\nef");
 //         t.move_cursor(CursorMove::Jump(0, 1));
 //         t.start_selection_v2();
 //         t.move_cursor(CursorMove::Jump(2, 1));
@@ -1445,7 +1445,7 @@ fn test_delete_selection_on_delete_edge_cases() {
 
 // #[test]
 // fn test_undo_redo_stop_selection() {
-//     fn check(t: &mut TextArea, f: fn(&mut TextArea) -> bool) {
+//     fn check(t: &mut MergeArea, f: fn(&mut MergeArea) -> bool) {
 //         t.move_cursor(CursorMove::Jump(0, 0));
 //         t.start_selection();
 //         t.move_cursor(CursorMove::Jump(0, 1));
@@ -1454,7 +1454,7 @@ fn test_delete_selection_on_delete_edge_cases() {
 //         assert!(!t.is_selecting());
 //     }
 
-//     let mut t = TextArea::default();
+//     let mut t = MergeArea::default();
 //     t.insert_char('a');
 
 //     check(&mut t, |t| t.undo());
@@ -1474,7 +1474,7 @@ fn test_delete_selection_on_delete_edge_cases() {
 
 //     for test in tests {
 //         let (text, want, pos) = test;
-//         let mut t = TextArea::default();
+//         let mut t = MergeArea::default();
 //         t.set_yank_text(text);
 //         t.paste();
 //         assert_eq!(t.lines(), want, "{test:?}");
@@ -1494,7 +1494,7 @@ fn test_delete_selection_on_delete_edge_cases() {
 //     ];
 //     for test in tests {
 //         let (pasted, lines, yanked) = test;
-//         let mut t = TextArea::default();
+//         let mut t = MergeArea::default();
 //         t.set_yank_text(pasted);
 //         t.paste();
 //         assert_eq!(t.lines(), lines, "{test:?}");
@@ -1504,7 +1504,7 @@ fn test_delete_selection_on_delete_edge_cases() {
 
 #[test]
 fn test_select_all() {
-    let mut t = TextArea::with_value("aaa\nbbb\nccc");
+    let mut t = MergeArea::with_value("aaa\nbbb\nccc");
     t.select_all();
     assert!(t.is_selecting());
     assert_eq!(t.cursor2(), (2, 3));
@@ -1516,7 +1516,7 @@ fn test_select_all() {
 
 // #[test]
 // fn test_paste_while_selection() {
-//     let mut t = TextArea::from(["ab", "cd"]);
+//     let mut t = MergeArea::from(["ab", "cd"]);
 //     t.move_cursor(CursorMove::Jump(0, 1));
 //     t.start_selection();
 //     t.move_cursor(CursorMove::Jump(1, 1));
@@ -1526,7 +1526,7 @@ fn test_select_all() {
 //     assert_eq!(t.cursor(), (1, 1));
 //     assert!(!t.is_selecting());
 
-//     let mut t = TextArea::from(["ab", "cd"]);
+//     let mut t = MergeArea::from(["ab", "cd"]);
 //     t.select_all();
 //     t.set_yank_text("xy\nzw");
 //     assert!(t.paste());
@@ -1538,7 +1538,7 @@ fn test_select_all() {
 #[test]
 fn test_selection_range() {
     #[rustfmt::skip]
-    let mut t = TextArea::with_value([
+    let mut t = MergeArea::with_value([
         "あいうえお",
         "Hello",
         "🐶🐱🐰🐮🐹",
@@ -1572,13 +1572,13 @@ fn test_selection_range() {
     }
 }
 
-struct DeleteTester(&'static str, fn(&mut TextArea) -> bool);
+struct DeleteTester(&'static str, fn(&mut MergeArea) -> bool);
 impl DeleteTester {
     fn test(&self, before: (usize, usize), after: (usize, usize, &str, &str)) {
         let Self(buf_before, op) = *self;
         let (row, col) = before;
 
-        let mut t = TextArea::with_value(buf_before);
+        let mut t = MergeArea::with_value(buf_before);
         t.move_cursor(CursorMove::Jump(row as _, col as _));
         let modified = op(&mut t);
 

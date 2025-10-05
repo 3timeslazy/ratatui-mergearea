@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use ratatui_mergearea::{CursorMove, TextArea};
+use ratatui_mergearea::{CursorMove, MergeArea};
 use ratatui_mergearea_bench::{dummy_terminal, TerminalExt, LOREM};
 
 #[derive(Clone, Copy)]
@@ -10,7 +10,7 @@ enum Kind {
 }
 
 #[inline]
-fn run(textarea: &TextArea<'_>, kind: Kind) {
+fn run(textarea: &MergeArea<'_>, kind: Kind) {
     let mut term = dummy_terminal();
     let mut t = textarea.clone();
     t.move_cursor(CursorMove::Jump(u16::MAX, u16::MAX));
@@ -33,7 +33,7 @@ fn bench(c: &mut Criterion) {
     for _ in 0..10 {
         lines.extend(LOREM.iter().map(|s| s.to_string()));
     }
-    let textarea = TextArea::with_value(lines.join("\n"));
+    let textarea = MergeArea::with_value(lines.join("\n"));
 
     c.bench_function("delete::char", |b| b.iter(|| run(&textarea, Kind::Char)));
     c.bench_function("delete::word", |b| b.iter(|| run(&textarea, Kind::Word)));

@@ -6,7 +6,7 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::widgets::{Block, Borders};
 use ratatui::Terminal;
 use std::io;
-use ratatui_mergearea::{Input, Key, TextArea};
+use ratatui_mergearea::{Input, Key, MergeArea};
 
 fn main() -> io::Result<()> {
     let stdout = io::stdout();
@@ -17,7 +17,7 @@ fn main() -> io::Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut term = Terminal::new(backend)?;
 
-    let mut textarea = TextArea::default();
+    let mut textarea = MergeArea::default();
     textarea.set_block(
         Block::default()
             .borders(Borders::ALL)

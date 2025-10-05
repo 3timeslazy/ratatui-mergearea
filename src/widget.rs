@@ -2,14 +2,14 @@ use crate::ratatui::buffer::Buffer;
 use crate::ratatui::layout::Rect;
 use crate::ratatui::text::{Span, Text};
 use crate::ratatui::widgets::{Paragraph, Widget};
-use crate::textarea::TextArea;
+use crate::textarea::MergeArea;
 use crate::util::num_digits;
 use ratatui::text::Line;
 use std::cmp;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-// &mut 'a (u16, u16, u16, u16) is not available since `render` method takes immutable reference of TextArea
-// instance. In the case, the TextArea instance cannot be accessed from any other objects since it is mutablly
+// &mut 'a (u16, u16, u16, u16) is not available since `render` method takes immutable reference of MergeArea
+// instance. In the case, the MergeArea instance cannot be accessed from any other objects since it is mutablly
 // borrowed.
 //
 // `ratatui::Frame::render_stateful_widget` would be an assumed way to render a stateful widget. But at this
@@ -88,7 +88,7 @@ fn next_scroll_top(prev_top: u16, cursor: u16, len: u16) -> u16 {
     }
 }
 
-impl<'a> TextArea<'a> {
+impl<'a> MergeArea<'a> {
     fn text_widget(&'a self, top_row: usize, height: usize) -> Text<'a> {
         let text_lines = self.text().as_str().split("\n").collect::<Vec<&str>>();
 
@@ -128,7 +128,7 @@ impl<'a> TextArea<'a> {
     }
 }
 
-impl Widget for &TextArea<'_> {
+impl Widget for &MergeArea<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let Rect { width, height, .. } = if let Some(b) = self.block() {
             b.inner(area)
