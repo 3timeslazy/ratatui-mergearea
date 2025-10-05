@@ -3,8 +3,8 @@
 use arbitrary::{Arbitrary, Result, Unstructured};
 use libfuzzer_sys::fuzz_target;
 use std::str;
-use tui_textarea::{CursorMove, Input, TextArea};
-use tui_textarea_bench::{dummy_terminal, TerminalExt};
+use ratatui_mergearea::{CursorMove, Input, TextArea};
+use ratatui_mergearea_bench::{dummy_terminal, TerminalExt};
 
 #[derive(Arbitrary)]
 enum RandomInput {
@@ -27,7 +27,7 @@ fn fuzz(data: &[u8]) -> Result<()> {
     let mut term = dummy_terminal();
     let mut data = Unstructured::new(data);
     let text = <&str>::arbitrary(&mut data)?;
-    let mut textarea = TextArea::from(text.lines());
+    let mut textarea = TextArea::with_value(text);
     for _ in 0..100 {
         let input = RandomInput::arbitrary(&mut data)?;
         input.apply(&mut textarea);

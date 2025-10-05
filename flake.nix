@@ -25,7 +25,13 @@
           # pkg-config
           gcc
           cargo-machete
+          cargo-fuzz
         ];
+
+        shellHook = ''
+          # Need for running fuzz tests
+          export LD_LIBRARY_PATH=${pkgs.stdenv.cc.cc.lib}/lib:$LD_LIBRARY_PATH
+        '';
 
         RUST_BACKTRACE = "1";
       };

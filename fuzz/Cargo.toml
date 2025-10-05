@@ -11,8 +11,8 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = "0.4"
 arbitrary = { version = "1", features = ["derive"] }
-tui-textarea = { path = "..", features = ["search", "arbitrary"] }
-tui-textarea-bench = { path = "../bench" }
+ratatui-mergearea = { path = "..", features = ["search", "arbitrary"] }
+ratatui-mergearea-bench = { path = "../bench" }
 
 # Prevent this from interfering with workspaces
 [workspace]

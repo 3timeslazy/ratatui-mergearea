@@ -2,8 +2,8 @@
 
 use arbitrary::{Arbitrary as _, Result, Unstructured};
 use libfuzzer_sys::fuzz_target;
-use tui_textarea::{CursorMove, TextArea};
-use tui_textarea_bench::{dummy_terminal, TerminalExt};
+use ratatui_mergearea::{CursorMove, TextArea};
+use ratatui_mergearea_bench::{dummy_terminal, TerminalExt};
 
 fn fuzz(data: &[u8]) -> Result<()> {
     let mut term = dummy_terminal();

@@ -6,7 +6,7 @@ use ratatui::buffer::Cell;
 use ratatui::layout::{Position, Size};
 use ratatui::Terminal;
 use std::io;
-use tui_textarea::TextArea;
+use ratatui_mergearea::TextArea;
 
 pub const LOREM: &[&str] = &[
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do",
