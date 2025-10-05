@@ -1,9 +1,9 @@
 use crate::ratatui::style::Style;
 use crate::ratatui::text::Span;
-use crate::util::{self, num_digits, spaces};
+use crate::util::{num_digits, spaces};
 use ratatui::text::Line;
 use std::borrow::Cow;
-use std::cmp::{self, Ordering};
+use std::cmp::Ordering;
 use std::iter;
 use unicode_width::UnicodeWidthChar as _;
 
@@ -486,39 +486,29 @@ mod tests {
     #[test]
     fn into_spans_selection() {
         let tests = [
-            // (line, (row, start_row, start_off, end_row, end_off), want)
-            ("abc", (0, 1, 0, 2, 0), &[("abc", DEFAULT)][..]),
-            ("abc", (1, 1, 0, 1, 1), &[("a", SEL), ("bc", DEFAULT)][..]),
-            ("abc", (1, 1, 2, 1, 3), &[("ab", DEFAULT), ("c", SEL)][..]),
-            ("abc", (1, 1, 0, 1, 3), &[("abc", SEL)][..]),
-            ("abc", (1, 1, 0, 2, 0), &[("abc", SEL), (" ", SEL)][..]),
+            ("abc", (0, 2, 0, 0), &[("abc", DEFAULT)][..]),
+            ("abc", (0, 2, 0, 1), &[("a", SEL), ("bc", DEFAULT)][..]),
+            ("abc", (0, 2, 0, 2), &[("ab", SEL), ("c", DEFAULT)][..]),
+            ("abc", (0, 2, 0, 3), &[("abc", SEL), (" ", SEL)][..]),
             (
                 "abc",
-                (1, 1, 2, 2, 0),
-                &[("ab", DEFAULT), ("c", SEL), (" ", SEL)][..],
+                (0, 2, 1, 2),
+                &[("a", DEFAULT), ("b", SEL), ("c", DEFAULT)][..],
             ),
-            ("abc", (1, 1, 3, 2, 0), &[("abc", DEFAULT), (" ", SEL)][..]),
-            ("abc", (2, 1, 0, 3, 0), &[("abc", SEL), (" ", SEL)][..]),
-            ("abc", (2, 1, 0, 2, 0), &[("abc", DEFAULT)][..]),
-            ("abc", (2, 1, 0, 2, 2), &[("ab", SEL), ("c", DEFAULT)][..]),
-            ("abc", (2, 1, 0, 2, 3), &[("abc", SEL)][..]),
             (
-                "ab\t",
-                (1, 1, 2, 2, 0),
-                &[("ab", DEFAULT), ("  ", SEL), (" ", SEL)][..],
+                "abc",
+                (0, 2, 1, 3),
+                &[("a", DEFAULT), ("bc", SEL), (" ", SEL)][..],
             ),
-            ("a\tb", (2, 1, 0, 3, 0), &[("a   b", SEL), (" ", SEL)][..]),
-            (
-                "a\tb",
-                (2, 1, 0, 2, 2),
-                &[("a   ", SEL), ("b", DEFAULT)][..],
-            ),
+            ("abc", (0, 2, 0, 5), &[("abc", SEL), (" ", SEL)][..]),
+            ("a\tb", (0, 2, 0, 3), &[("a   b", SEL), (" ", SEL)][..]),
+            ("a\tb", (0, 2, 0, 2), &[("a   ", SEL), ("b", DEFAULT)][..]),
         ];
 
         for test in tests {
-            let (line, (row, start_row, start_off, end_row, end_off), want) = test;
-            let mut lh = LineHighlighter::new(line, CUR, 4, None, SEL);
-            lh.selection(row, start_row, start_off, end_row, end_off);
+            let (text, (line_start, line_end, sel_start, sel_end), want) = test;
+            let mut lh = LineHighlighter::new(text, CUR, 4, None, SEL);
+            lh.selection(line_start, line_end, sel_start, sel_end);
             assert_spans(lh, want, test);
         }
     }
@@ -531,7 +521,7 @@ mod tests {
                 {
                     let mut lh = LineHighlighter::new("abcde", CUR, 4, None, SEL);
                     lh.cursor_line(2, LINE);
-                    lh.selection(0, 0, 1, 0, 4);
+                    lh.selection(0, 4, 1, 4);
                     lh
                 },
                 &[("a", LINE), ("b", SEL), ("c", CUR), ("d", SEL), ("e", LINE)][..],
@@ -542,7 +532,7 @@ mod tests {
                 {
                     let mut lh = LineHighlighter::new("abcdefg", CUR, 4, None, SEL);
                     lh.cursor_line(3, LINE);
-                    lh.selection(0, 0, 2, 0, 5);
+                    lh.selection(0, 6, 2, 5);
                     lh.search([(1, 2), (5, 6)].into_iter(), SEARCH);
                     lh
                 },
@@ -561,7 +551,7 @@ mod tests {
                 {
                     let mut lh = LineHighlighter::new("ab", CUR, 4, None, SEL);
                     lh.cursor_line(2, LINE);
-                    lh.selection(0, 0, 1, 2, 0);
+                    lh.selection(0, 2, 1, 2);
                     lh
                 },
                 &[("a", LINE), ("b", SEL), (" ", CUR)][..],
@@ -571,7 +561,7 @@ mod tests {
                 {
                     let mut lh = LineHighlighter::new("abcd", CUR, 4, None, SEL);
                     lh.cursor_line(1, LINE);
-                    lh.selection(0, 0, 1, 0, 3);
+                    lh.selection(0, 3, 1, 3);
                     lh
                 },
                 &[("a", LINE), ("b", CUR), ("c", SEL), ("d", LINE)][..],
@@ -581,7 +571,7 @@ mod tests {
                 {
                     let mut lh = LineHighlighter::new("abcd", CUR, 4, None, SEL);
                     lh.cursor_line(2, LINE);
-                    lh.selection(0, 0, 1, 0, 3);
+                    lh.selection(0, 3, 1, 3);
                     lh
                 },
                 &[("a", LINE), ("b", SEL), ("c", CUR), ("d", LINE)][..],
@@ -591,7 +581,7 @@ mod tests {
                 {
                     let mut lh = LineHighlighter::new("abc", CUR, 4, None, SEL);
                     lh.cursor_line(1, LINE);
-                    lh.selection(0, 0, 1, 0, 2);
+                    lh.selection(0, 2, 1, 2);
                     lh
                 },
                 &[("a", LINE), ("b", CUR), ("c", LINE)][..],
