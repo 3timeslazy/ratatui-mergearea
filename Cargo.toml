@@ -1,8 +1,8 @@
 [package]
 name = "ratatui-mergearea"
-version = "0.7.0"
-edition = "2021"
-rust-version = "1.70"
+version = "0.0.1"
+edition = "2024"
+rust-version = "1.85"
 authors = ["vladimir <vladimir.fetisov@pm.me>"]
 description = "Automerge text editor widget for ratatui based on tui-textarea"
 license = "GPL-3.0"
