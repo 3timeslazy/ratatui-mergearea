@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use tui_textarea::TextArea;
-use tui_textarea_bench::{dummy_terminal, TerminalExt, LOREM};
+use ratatui_mergearea::TextArea;
+use ratatui_mergearea_bench::{dummy_terminal, TerminalExt, LOREM};
 
 #[inline]
 fn run(pat: &str, mut textarea: TextArea<'_>, forward: bool) {
@@ -20,7 +20,7 @@ fn run(pat: &str, mut textarea: TextArea<'_>, forward: bool) {
 }
 
 fn short(c: &mut Criterion) {
-    let textarea = TextArea::from(LOREM.iter().map(|s| s.to_string()));
+    let textarea = TextArea::with_value(LOREM.join("\n"));
     c.bench_function("search::forward_short", |b| {
         b.iter(|| run(r"\w*i\w*", textarea.clone(), true))
     });
@@ -32,9 +32,9 @@ fn short(c: &mut Criterion) {
 fn long(c: &mut Criterion) {
     let mut lines = vec![];
     for _ in 0..10 {
-        lines.extend(LOREM.iter().map(|s| s.to_string()));
+        lines.push(LOREM.join("\n"));
     }
-    let textarea = TextArea::new(lines);
+    let textarea = TextArea::with_value(lines.join("\n"));
     c.bench_function("search::forward_long", |b| {
         b.iter(|| run(r"[A-Z]\w*", textarea.clone(), true))
     });

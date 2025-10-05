@@ -1,6 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use tui_textarea::{CursorMove, TextArea};
-use tui_textarea_bench::{dummy_terminal, TerminalExt, LOREM};
+use ratatui_mergearea::{CursorMove, TextArea};
+use ratatui_mergearea_bench::{dummy_terminal, TerminalExt, LOREM};
 
 #[derive(Clone, Copy)]
 enum Restore {
@@ -26,7 +26,7 @@ fn prepare_textarea() -> TextArea<'static> {
     lines.extend(LOREM.iter().map(|s| s.to_string()));
     lines.push("".to_string());
     lines.extend(LOREM.iter().map(|s| s.to_string()));
-    TextArea::new(lines)
+    TextArea::with_value(lines.join("\n"))
 }
 
 fn run(
@@ -51,7 +51,7 @@ fn run(
         }
     }
 
-    textarea.cursor()
+    textarea.cursor2()
 }
 
 fn move_char(c: &mut Criterion) {
@@ -120,29 +120,29 @@ fn move_word(c: &mut Criterion) {
         })
     });
 }
-fn move_paragraph(c: &mut Criterion) {
-    let textarea = prepare_textarea();
-    c.bench_function("cursor::paragraph::down", |b| {
-        b.iter(|| {
-            black_box(run(
-                textarea.clone(),
-                &[CursorMove::ParagraphForward],
-                Restore::TopLeft,
-                1000,
-            ))
-        })
-    });
-    c.bench_function("cursor::paragraph::up", |b| {
-        b.iter(|| {
-            black_box(run(
-                textarea.clone(),
-                &[CursorMove::ParagraphBack],
-                Restore::BottomLeft,
-                1000,
-            ))
-        })
-    });
-}
+// fn move_paragraph(c: &mut Criterion) {
+//     let textarea = prepare_textarea();
+//     c.bench_function("cursor::paragraph::down", |b| {
+//         b.iter(|| {
+//             black_box(run(
+//                 textarea.clone(),
+//                 &[CursorMove::ParagraphForward],
+//                 Restore::TopLeft,
+//                 1000,
+//             ))
+//         })
+//     });
+//     c.bench_function("cursor::paragraph::up", |b| {
+//         b.iter(|| {
+//             black_box(run(
+//                 textarea.clone(),
+//                 &[CursorMove::ParagraphBack],
+//                 Restore::BottomLeft,
+//                 1000,
+//             ))
+//         })
+//     });
+// }
 fn move_edge(c: &mut Criterion) {
     let textarea = prepare_textarea();
     c.bench_function("cursor::edge::head_end", |b| {
@@ -167,5 +167,5 @@ fn move_edge(c: &mut Criterion) {
     });
 }
 
-criterion_group!(cursor, move_char, move_word, move_paragraph, move_edge);
+criterion_group!(cursor, move_char, move_word, move_edge);
 criterion_main!(cursor);

@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use tui_textarea::{CursorMove, TextArea};
-use tui_textarea_bench::{dummy_terminal, TerminalExt, LOREM};
+use ratatui_mergearea::{CursorMove, TextArea};
+use ratatui_mergearea_bench::{dummy_terminal, TerminalExt, LOREM};
 
 #[derive(Clone, Copy)]
 enum Kind {
@@ -33,7 +33,7 @@ fn bench(c: &mut Criterion) {
     for _ in 0..10 {
         lines.extend(LOREM.iter().map(|s| s.to_string()));
     }
-    let textarea = TextArea::new(lines);
+    let textarea = TextArea::with_value(lines.join("\n"));
 
     c.bench_function("delete::char", |b| b.iter(|| run(&textarea, Kind::Char)));
     c.bench_function("delete::word", |b| b.iter(|| run(&textarea, Kind::Word)));
