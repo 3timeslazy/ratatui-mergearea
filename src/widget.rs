@@ -3,10 +3,9 @@ use crate::ratatui::layout::Rect;
 use crate::ratatui::text::{Span, Text};
 use crate::ratatui::widgets::{Paragraph, Widget};
 use crate::textarea::TextArea;
-use crate::util::{self, num_digits};
+use crate::util::num_digits;
 use ratatui::text::Line;
 use std::cmp;
-use std::ops::Index;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 // &mut 'a (u16, u16, u16, u16) is not available since `render` method takes immutable reference of TextArea

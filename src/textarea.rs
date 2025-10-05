@@ -5,7 +5,7 @@ use crate::history_v2::{Edit as EditV2, EditKind as EditKindV2, History as Histo
 use crate::input::{Input, Key};
 use crate::ratatui::layout::Alignment;
 use crate::ratatui::style::{Color, Modifier, Style};
-use crate::ratatui::widgets::{Block, Widget};
+use crate::ratatui::widgets::Block;
 use crate::scroll::Scrolling;
 #[cfg(feature = "search")]
 use crate::search::Search;

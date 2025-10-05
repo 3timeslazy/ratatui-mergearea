@@ -6,7 +6,7 @@ use crate::{util, widget::Viewport};
 use arbitrary::Arbitrary;
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use std::{cmp, u16};
+use std::cmp;
 
 /// Specify how to move the cursor.
 ///

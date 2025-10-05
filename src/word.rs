@@ -1,7 +1,5 @@
 use std::cmp;
 
-use crate::util::{find_line_end, find_line_start};
-
 #[derive(PartialEq, Eq, Clone, Copy)]
 enum CharKind {
     Space,
@@ -19,19 +17,6 @@ impl CharKind {
             Self::Other
         }
     }
-}
-
-pub fn find_word_start_forward(line: &str, start_col: usize) -> Option<usize> {
-    let mut it = line.chars().enumerate().skip(start_col);
-    let mut prev = CharKind::new(it.next()?.1);
-    for (col, c) in it {
-        let cur = CharKind::new(c);
-        if cur != CharKind::Space && prev != cur {
-            return Some(col);
-        }
-        prev = cur;
-    }
-    None
 }
 
 pub fn find_word_start_forward_v2(text: &str, cursor: usize) -> Option<usize> {
@@ -58,25 +43,6 @@ pub fn find_word_exclusive_end_forward(line: &str, start_col: usize) -> Option<u
         prev = cur;
     }
     None
-}
-
-pub fn find_word_inclusive_end_forward(line: &str, start_col: usize) -> Option<usize> {
-    let mut it = line.chars().enumerate().skip(start_col);
-    let (mut last_col, c) = it.next()?;
-    let mut prev = CharKind::new(c);
-    for (col, c) in it {
-        let cur = CharKind::new(c);
-        if prev != CharKind::Space && cur != prev {
-            return Some(col.saturating_sub(1));
-        }
-        prev = cur;
-        last_col = col;
-    }
-    if prev != CharKind::Space {
-        Some(last_col)
-    } else {
-        None
-    }
 }
 
 pub fn find_word_inclusive_end_forward_v2(text: &str, cursor: usize) -> Option<usize> {
@@ -116,30 +82,6 @@ pub fn find_word_start_backward(line: &str, start_col: usize) -> Option<usize> {
         cur = next;
     }
     (cur != CharKind::Space).then(|| 0)
-}
-
-pub fn find_word_start_backward_v3(text: &str, cursor: usize) -> Option<usize> {
-    let idx = text
-        .char_indices()
-        .nth(cursor)
-        .map(|(i, c)| i + c.len_utf8())
-        .unwrap_or_else(|| text.len());
-    let cursor = cmp::min(cursor, text.chars().count());
-
-    let mut it = text[..idx].chars().rev().enumerate();
-    let next = it.next()?.1;
-    if next == '\n' {
-        return Some(cursor - 1);
-    }
-    let mut cur = CharKind::new(next);
-    for (i, c) in it {
-        let next = CharKind::new(c);
-        if cur != CharKind::Space && next != cur {
-            return Some(cursor - i - 1);
-        }
-        cur = next;
-    }
-    (cur != CharKind::Space).then_some(0)
 }
 
 pub fn find_word_start_backward_v2(text: &str, cursor: usize) -> Option<usize> {
