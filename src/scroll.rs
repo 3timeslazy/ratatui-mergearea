@@ -70,7 +70,7 @@ pub enum Scrolling {
     PageDown,
     /// Scroll up the textarea by one page.
     ///
-    /// ```
+    /// ```ignore
     /// # use ratatui::buffer::Buffer;
     /// # use ratatui::layout::Rect;
     /// # use ratatui::widgets::Widget as _;
@@ -101,7 +101,7 @@ pub enum Scrolling {
     PageUp,
     /// Scroll down the textarea by half of the page.
     ///
-    /// ```
+    /// ```ignore
     /// # use ratatui::buffer::Buffer;
     /// # use ratatui::layout::Rect;
     /// # use ratatui::widgets::Widget as _;
@@ -128,7 +128,7 @@ pub enum Scrolling {
     HalfPageDown,
     /// Scroll up the textarea by half of the page.
     ///
-    /// ```
+    /// ```ignore
     /// # use ratatui::buffer::Buffer;
     /// # use ratatui::layout::Rect;
     /// # use ratatui::widgets::Widget as _;

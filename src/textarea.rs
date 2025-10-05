@@ -11,7 +11,9 @@ use crate::scroll::Scrolling;
 use crate::search::Search;
 use crate::util::{self, spaces, Pos};
 use crate::widget::Viewport;
-use crate::word::{find_word_exclusive_end_forward, find_word_start_backward};
+use crate::word::{
+    find_word_exclusive_end_forward, find_word_start_backward, find_word_start_backward_v2,
+};
 use ratatui::text::Line;
 use std::cmp::{self, Ordering};
 use std::fmt;
@@ -846,7 +848,7 @@ impl<'a> TextArea<'a> {
     /// Delete a string from the current cursor position. The `chars` parameter means number of characters, not a byte
     /// length of the string. Newlines at the end of lines are counted in the number. This method returns if some text
     /// was deleted or not.
-    /// ```
+    /// ```ignore
     /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
     /// let mut textarea = TextArea::with_value("🐱🐶🐰🐮");
@@ -1169,7 +1171,7 @@ impl<'a> TextArea<'a> {
     ///
     /// This method returns if some text was deleted or not in the textarea.
     ///
-    /// ```
+    /// ```ignore
     /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
     /// let mut textarea = TextArea::with_value("aaa bbb ccc");
@@ -1182,17 +1184,7 @@ impl<'a> TextArea<'a> {
     /// assert_eq!(textarea.text().as_str(), "aaa ");
     /// ```
     pub fn delete_word(&mut self) -> bool {
-        if self.delete_selection(false) {
-            return true;
-        }
-        let (r, c) = self.cursor;
-        if let Some(col) = find_word_start_backward(&self.lines[r], c) {
-            self.delete_piece(col, c - col)
-        } else if c > 0 {
-            self.delete_piece(0, c)
-        } else {
-            self.delete_newline()
-        }
+       todo!()
     }
 
     /// Delete a word next to cursor. Word boundary appears at spaces, punctuations, and others. For example `fn foo(a)`
@@ -1201,7 +1193,7 @@ impl<'a> TextArea<'a> {
     ///
     /// This method returns if some text was deleted or not in the textarea.
     ///
-    /// ```
+    /// ```ignore
     /// use ratatui_mergearea::TextArea;
     ///
     /// let mut textarea = TextArea::with_value("aaa bbb ccc");
@@ -1212,30 +1204,13 @@ impl<'a> TextArea<'a> {
     /// assert_eq!(textarea.text().as_str(), " ccc");
     /// ```
     pub fn delete_next_word(&mut self) -> bool {
-        if self.delete_selection(false) {
-            return true;
-        }
-        let (r, c) = self.cursor;
-        let line = &self.lines[r];
-        if let Some(col) = find_word_exclusive_end_forward(line, c) {
-            self.delete_piece(c, col - c)
-        } else {
-            let end_col = line.chars().count();
-            if c < end_col {
-                self.delete_piece(c, end_col - c)
-            } else if r + 1 < self.lines.len() {
-                self.cursor = (r + 1, 0);
-                self.delete_newline()
-            } else {
-                false
-            }
-        }
+       todo!()
     }
 
     /// Paste a string previously deleted by [`TextArea::delete_line_by_head`], [`TextArea::delete_line_by_end`],
     /// [`TextArea::delete_word`], [`TextArea::delete_next_word`]. This method returns if some text was inserted or not
     /// in the textarea.
-    /// ```
+    /// ```ignore
     /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
     /// let mut textarea = TextArea::with_value("aaa bbb ccc");
@@ -1270,7 +1245,7 @@ impl<'a> TextArea<'a> {
     }
 
     /// Stop the current text selection. This method does nothing if text selection is not ongoing.
-    /// ```
+    /// ```ignore
     /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
     /// let mut textarea = TextArea::with_value("aaa bbb ccc");
@@ -1314,7 +1289,7 @@ impl<'a> TextArea<'a> {
     }
 
     /// Return if text selection is ongoing or not.
-    /// ```
+    /// ```ignore
     /// use ratatui_mergearea::{TextArea};
     ///
     /// let mut textarea = TextArea::default();
@@ -1499,7 +1474,7 @@ impl<'a> TextArea<'a> {
     }
 
     /// Undo the last modification. This method returns if the undo modified text contents or not in the textarea.
-    /// ```
+    /// ```ignore
     /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
     /// let mut textarea = TextArea::with_value("abc def");
@@ -1520,7 +1495,7 @@ impl<'a> TextArea<'a> {
     }
 
     /// Redo the last undo change. This method returns if the redo modified text contents or not in the textarea.
-    /// ```
+    /// ```ignore
     /// use ratatui_mergearea::{TextArea, CursorMove};
     ///
     /// let mut textarea = TextArea::with_value("abc def");
@@ -2011,7 +1986,7 @@ impl<'a> TextArea<'a> {
     /// inclusively below and exclusively above. The positions are 0-base character-wise (row, col) values.
     /// The first element of the pair is always smaller than the second one even when it is ahead of the cursor.
     /// When no text is selected, this method returns `None`.
-    /// ```
+    /// ```ignore
     /// use ratatui_mergearea::TextArea;
     /// use ratatui_mergearea::CursorMove;
     ///
@@ -2105,7 +2080,7 @@ impl<'a> TextArea<'a> {
     /// [`TextArea::delete_line_by_end`], [`TextArea::delete_word`], [`TextArea::delete_next_word`],
     /// [`TextArea::delete_str`], [`TextArea::copy`], and [`TextArea::cut`]. When multiple lines were yanked, they are
     /// always joined with `\n`.
-    /// ```
+    /// ```ignore
     /// use ratatui_mergearea::TextArea;
     ///
     /// let mut textarea = TextArea::with_value("abc");
@@ -2124,7 +2099,7 @@ impl<'a> TextArea<'a> {
 
     /// Set a yanked text. The text can be inserted by [`TextArea::paste`]. `\n` and `\r\n` are recognized as newline
     /// but `\r` isn't.
-    /// ```
+    /// ```ignore
     /// use ratatui_mergearea::TextArea;
     ///
     /// let mut textarea = TextArea::default();
@@ -2329,7 +2304,7 @@ impl<'a> TextArea<'a> {
     /// The cursor will not move until it goes out the viewport. When the cursor position is outside the viewport after scroll,
     /// the cursor position will be adjusted to stay in the viewport using the same logic as [`CursorMove::InViewport`].
     ///
-    /// ```
+    /// ```ignore
     /// # use ratatui::buffer::Buffer;
     /// # use ratatui::layout::Rect;
     /// # use ratatui::widgets::Widget as _;

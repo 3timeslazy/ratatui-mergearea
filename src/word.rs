@@ -19,7 +19,7 @@ impl CharKind {
     }
 }
 
-pub fn find_word_start_forward_v2(text: &str, cursor: usize) -> Option<usize> {
+pub fn find_word_start_forward(text: &str, cursor: usize) -> Option<usize> {
     let mut it = text.chars().enumerate().skip(cursor);
     let mut prev = CharKind::new(it.next()?.1);
     for (col, c) in it {
@@ -45,7 +45,7 @@ pub fn find_word_exclusive_end_forward(line: &str, start_col: usize) -> Option<u
     None
 }
 
-pub fn find_word_inclusive_end_forward_v2(text: &str, cursor: usize) -> Option<usize> {
+pub fn find_word_inclusive_end_forward(text: &str, cursor: usize) -> Option<usize> {
     let chars: Vec<char> = text.chars().collect();
 
     let mut pos = cursor;

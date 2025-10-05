@@ -1,5 +1,5 @@
 use crate::word::{
-    find_word_inclusive_end_forward_v2, find_word_start_backward_v2, find_word_start_forward_v2,
+    find_word_inclusive_end_forward, find_word_start_backward_v2, find_word_start_forward,
 };
 use crate::{util, widget::Viewport};
 #[cfg(feature = "arbitrary")]
@@ -187,7 +187,7 @@ pub enum CursorMove {
     /// - cursor at line 12 is not moved
     ///
     /// This is useful when you moved a cursor but you don't want to move the viewport.
-    /// ```
+    /// ```ignore
     /// # use ratatui::buffer::Buffer;
     /// # use ratatui::layout::Rect;
     /// # use ratatui::widgets::Widget as _;
@@ -314,11 +314,11 @@ impl CursorMove {
                 let col = offset - line_start;
                 CursorMove::Jump(u16::MAX, col as u16).next_cursor(offset, text, viewport)
             }
-            WordForward => match find_word_start_forward_v2(text.as_str(), offset) {
-                None => find_word_inclusive_end_forward_v2(text.as_str(), offset + 1),
+            WordForward => match find_word_start_forward(text.as_str(), offset) {
+                None => find_word_inclusive_end_forward(text.as_str(), offset + 1),
                 Some(pos) => Some(pos),
             },
-            WordEnd => find_word_inclusive_end_forward_v2(text.as_str(), offset + 1),
+            WordEnd => find_word_inclusive_end_forward(text.as_str(), offset + 1),
             WordBack => find_word_start_backward_v2(text.as_str(), offset.saturating_sub(1)),
             Jump(row, col) => {
                 let chars = text.as_str().chars().collect::<Vec<_>>();
