@@ -20,12 +20,13 @@ pub enum Scrolling {
     /// # use ratatui::buffer::Buffer;
     /// # use ratatui::layout::Rect;
     /// # use ratatui::widgets::Widget as _;
-    /// use tui_textarea::{TextArea, Scrolling};
+    /// use ratatui_mergearea::{TextArea, Scrolling};
     ///
     /// // Let's say terminal height is 8.
     ///
     /// // Create textarea with 20 lines "0", "1", "2", "3", ...
-    /// let mut textarea: TextArea = (0..20).into_iter().map(|i| i.to_string()).collect();
+    /// let text = (0..20).map(|i| i.to_string()).collect::<Vec<_>>().join("\n");
+    /// let mut textarea = TextArea::with_value(text);
     /// # // Call `render` at least once to populate terminal size
     /// # let r = Rect { x: 0, y: 0, width: 24, height: 8 };
     /// # let mut b = Buffer::empty(r.clone());
@@ -33,11 +34,11 @@ pub enum Scrolling {
     ///
     /// // Scroll down by 2 lines.
     /// textarea.scroll(Scrolling::Delta{rows: 2, cols: 0});
-    /// assert_eq!(textarea.cursor(), (2, 0));
+    /// assert_eq!(textarea.cursor2(), (2, 0));
     ///
     /// // (1, 0) is converted into Scrolling::Delta{rows: 1, cols: 0}
     /// textarea.scroll((1, 0));
-    /// assert_eq!(textarea.cursor(), (3, 0));
+    /// assert_eq!(textarea.cursor2(), (3, 0));
     /// ```
     Delta { rows: i16, cols: i16 },
     /// Scroll down the textarea by one page.
@@ -46,12 +47,13 @@ pub enum Scrolling {
     /// # use ratatui::buffer::Buffer;
     /// # use ratatui::layout::Rect;
     /// # use ratatui::widgets::Widget as _;
-    /// use tui_textarea::{TextArea, Scrolling};
+    /// use ratatui_mergearea::{TextArea, Scrolling};
     ///
     /// // Let's say terminal height is 8.
     ///
     /// // Create textarea with 20 lines "0", "1", "2", "3", ...
-    /// let mut textarea: TextArea = (0..20).into_iter().map(|i| i.to_string()).collect();
+    /// let text = (0..20).map(|i| i.to_string()).collect::<Vec<_>>().join("\n");
+    /// let mut textarea = TextArea::with_value(text);
     /// # // Call `render` at least once to populate terminal size
     /// # let r = Rect { x: 0, y: 0, width: 24, height: 8 };
     /// # let mut b = Buffer::empty(r.clone());
@@ -59,11 +61,11 @@ pub enum Scrolling {
     ///
     /// // Scroll down by one page (8 lines)
     /// textarea.scroll(Scrolling::PageDown);
-    /// assert_eq!(textarea.cursor(), (8, 0));
+    /// assert_eq!(textarea.cursor2(), (8, 0));
     /// textarea.scroll(Scrolling::PageDown);
-    /// assert_eq!(textarea.cursor(), (16, 0));
+    /// assert_eq!(textarea.cursor2(), (16, 0));
     /// textarea.scroll(Scrolling::PageDown);
-    /// assert_eq!(textarea.cursor(), (19, 0)); // Reached bottom of the textarea
+    /// assert_eq!(textarea.cursor2(), (19, 0)); // Reached bottom of the textarea
     /// ```
     PageDown,
     /// Scroll up the textarea by one page.
@@ -72,12 +74,13 @@ pub enum Scrolling {
     /// # use ratatui::buffer::Buffer;
     /// # use ratatui::layout::Rect;
     /// # use ratatui::widgets::Widget as _;
-    /// use tui_textarea::{TextArea, Scrolling, CursorMove};
+    /// use ratatui_mergearea::{TextArea, Scrolling, CursorMove};
     ///
     /// // Let's say terminal height is 8.
     ///
     /// // Create textarea with 20 lines "0", "1", "2", "3", ...
-    /// let mut textarea: TextArea = (0..20).into_iter().map(|i| i.to_string()).collect();
+    /// let text = (0..20).map(|i| i.to_string()).collect::<Vec<_>>().join("\n");
+    /// let mut textarea = TextArea::with_value(text);
     /// # // Call `render` at least once to populate terminal size
     /// # let r = Rect { x: 0, y: 0, width: 24, height: 8 };
     /// # let mut b = Buffer::empty(r.clone());
@@ -85,15 +88,15 @@ pub enum Scrolling {
     ///
     /// // Go to the last line at first
     /// textarea.move_cursor(CursorMove::Bottom);
-    /// assert_eq!(textarea.cursor(), (19, 0));
+    /// assert_eq!(textarea.cursor2(), (19, 0));
     /// # // Call `render` to populate terminal size
     /// # textarea.render(r.clone(), &mut b);
     ///
     /// // Scroll up by one page (8 lines)
     /// textarea.scroll(Scrolling::PageUp);
-    /// assert_eq!(textarea.cursor(), (11, 0));
+    /// assert_eq!(textarea.cursor2(), (11, 0));
     /// textarea.scroll(Scrolling::PageUp);
-    /// assert_eq!(textarea.cursor(), (7, 0)); // Reached top of the textarea
+    /// assert_eq!(textarea.cursor2(), (7, 0)); // Reached top of the textarea
     /// ```
     PageUp,
     /// Scroll down the textarea by half of the page.
@@ -102,12 +105,13 @@ pub enum Scrolling {
     /// # use ratatui::buffer::Buffer;
     /// # use ratatui::layout::Rect;
     /// # use ratatui::widgets::Widget as _;
-    /// use tui_textarea::{TextArea, Scrolling};
+    /// use ratatui_mergearea::{TextArea, Scrolling};
     ///
     /// // Let's say terminal height is 8.
     ///
     /// // Create textarea with 10 lines "0", "1", "2", "3", ...
-    /// let mut textarea: TextArea = (0..10).into_iter().map(|i| i.to_string()).collect();
+    /// let text = (0..20).map(|i| i.to_string()).collect::<Vec<_>>().join("\n") + "\n";
+    /// let mut textarea = TextArea::with_value(text);
     /// # // Call `render` at least once to populate terminal size
     /// # let r = Rect { x: 0, y: 0, width: 24, height: 8 };
     /// # let mut b = Buffer::empty(r.clone());
@@ -115,11 +119,11 @@ pub enum Scrolling {
     ///
     /// // Scroll down by half-page (4 lines)
     /// textarea.scroll(Scrolling::HalfPageDown);
-    /// assert_eq!(textarea.cursor(), (4, 0));
+    /// assert_eq!(textarea.cursor2(), (4, 0));
     /// textarea.scroll(Scrolling::HalfPageDown);
-    /// assert_eq!(textarea.cursor(), (8, 0));
+    /// assert_eq!(textarea.cursor2(), (8, 0));
     /// textarea.scroll(Scrolling::HalfPageDown);
-    /// assert_eq!(textarea.cursor(), (9, 0)); // Reached bottom of the textarea
+    /// assert_eq!(textarea.cursor2(), (9, 0)); // Reached bottom of the textarea
     /// ```
     HalfPageDown,
     /// Scroll up the textarea by half of the page.
@@ -128,12 +132,13 @@ pub enum Scrolling {
     /// # use ratatui::buffer::Buffer;
     /// # use ratatui::layout::Rect;
     /// # use ratatui::widgets::Widget as _;
-    /// use tui_textarea::{TextArea, Scrolling, CursorMove};
+    /// use ratatui_mergearea::{TextArea, Scrolling, CursorMove};
     ///
     /// // Let's say terminal height is 8.
     ///
     /// // Create textarea with 20 lines "0", "1", "2", "3", ...
-    /// let mut textarea: TextArea = (0..20).into_iter().map(|i| i.to_string()).collect();
+    /// let text = (0..20).map(|i| i.to_string()).collect::<Vec<_>>().join("\n");
+    /// let mut textarea = TextArea::with_value(text);
     /// # // Call `render` at least once to populate terminal size
     /// # let r = Rect { x: 0, y: 0, width: 24, height: 8 };
     /// # let mut b = Buffer::empty(r.clone());
@@ -141,15 +146,15 @@ pub enum Scrolling {
     ///
     /// // Go to the last line at first
     /// textarea.move_cursor(CursorMove::Bottom);
-    /// assert_eq!(textarea.cursor(), (19, 0));
+    /// assert_eq!(textarea.cursor2(), (19, 0));
     /// # // Call `render` to populate terminal size
     /// # textarea.render(r.clone(), &mut b);
     ///
     /// // Scroll up by half-page (4 lines)
     /// textarea.scroll(Scrolling::HalfPageUp);
-    /// assert_eq!(textarea.cursor(), (15, 0));
+    /// assert_eq!(textarea.cursor2(), (15, 0));
     /// textarea.scroll(Scrolling::HalfPageUp);
-    /// assert_eq!(textarea.cursor(), (11, 0));
+    /// assert_eq!(textarea.cursor2(), (11, 0));
     /// ```
     HalfPageUp,
 }
