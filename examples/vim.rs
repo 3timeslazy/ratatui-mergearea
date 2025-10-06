@@ -1,17 +1,8 @@
-use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
-use crossterm::terminal::{
-    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
-};
-use ratatui::backend::CrosstermBackend;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::{Block, Borders};
-use ratatui::Terminal;
-use ratatui_mergearea::{CursorMove, Input, Key, Scrolling, MergeArea};
-use std::env;
+use ratatui_mergearea::{CursorMove, Input, Key, MergeArea, Scrolling};
 use std::fmt;
-use std::fs;
 use std::io;
-use std::io::BufRead;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Mode {

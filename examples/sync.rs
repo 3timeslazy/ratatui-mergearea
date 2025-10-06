@@ -1,14 +1,8 @@
 use automerge::AutoCommit;
-use autosurgeon::{hydrate, reconcile, Hydrate, Reconcile};
-use crossterm::event::{DisableMouseCapture, EnableMouseCapture};
-use crossterm::terminal::{
-    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
-};
-use ratatui::backend::CrosstermBackend;
+use autosurgeon::{Hydrate, Reconcile, hydrate, reconcile};
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::widgets::{Block, Borders};
-use ratatui::Terminal;
 use ratatui_mergearea::{Input, Key, MergeArea};
 use std::io;
 

@@ -1,6 +1,6 @@
 use crate::cursor::CursorMove;
 use crate::highlight::LineHighlighter;
-use crate::history::{Edit, EditKind, History};
+use crate::history::History;
 use crate::history_v2::{Edit as EditV2, EditKind as EditKindV2, History as HistoryV2};
 use crate::input::{Input, Key};
 use crate::ratatui::layout::Alignment;
@@ -9,11 +9,8 @@ use crate::ratatui::widgets::Block;
 use crate::scroll::Scrolling;
 #[cfg(feature = "search")]
 use crate::search::Search;
-use crate::util::{self, spaces, Pos};
+use crate::util::{self, spaces};
 use crate::widget::Viewport;
-use crate::word::{
-    find_word_exclusive_end_forward, find_word_start_backward, find_word_start_backward_v2,
-};
 use ratatui::text::Line;
 use std::cmp::{self, Ordering};
 use std::fmt;
@@ -695,14 +692,7 @@ impl<'a> MergeArea<'a> {
         }
     }
 
-    fn push_history(&mut self, kind: EditKind, before: Pos, after_offset: usize) {
-        let (row, col) = self.cursor;
-        let after = Pos::new(row, col, after_offset);
-        let edit = Edit::new(kind, before, after);
-        self.history.push(edit);
-    }
-
-    fn push_history_v2(&mut self, kind: EditKindV2, offset: usize) {
+    fn push_history(&mut self, kind: EditKindV2, offset: usize) {
         let edit = EditV2::new(kind, offset);
         self.history_v2.push(edit);
     }
@@ -722,7 +712,7 @@ impl<'a> MergeArea<'a> {
             return;
         }
 
-        self.delete_selection_v2(false);
+        self.delete_selection(false);
         let text = self.text.as_str();
         let pos = text
             .char_indices()
@@ -732,7 +722,7 @@ impl<'a> MergeArea<'a> {
         self.text.splice(pos, 0, c.to_string());
         self.move_cursor(CursorMove::Forward);
 
-        self.push_history_v2(EditKindV2::InsertChar(c), pos);
+        self.push_history(EditKindV2::InsertChar(c), pos);
     }
 
     /// Insert a string at current cursor position. This method returns if some text was inserted or not in the textarea.
@@ -748,7 +738,7 @@ impl<'a> MergeArea<'a> {
     /// assert_eq!(textarea.text().as_str(), "hello, world\ngoodbye, world");
     /// ```
     pub fn insert_str<S: AsRef<str>>(&mut self, s: S) -> bool {
-        let deleted = self.delete_selection_v2(false);
+        let deleted = self.delete_selection(false);
         let inserted = self.insert_piece(s.as_ref().to_string());
 
         deleted || inserted
@@ -763,48 +753,9 @@ impl<'a> MergeArea<'a> {
         self.text.splice(pos, 0, &s);
         self.cursor_v2 += s.chars().count();
 
-        self.push_history_v2(EditKindV2::InsertStr(s), pos);
+        self.push_history(EditKindV2::InsertStr(s), pos);
 
         true
-    }
-
-    fn delete_range(&mut self, start: Pos, end: Pos, should_yank: bool) {
-        self.cursor = (start.row, start.col);
-
-        if start.row == end.row {
-            let removed = self.lines[start.row]
-                .drain(start.offset..end.offset)
-                .as_str()
-                .to_string();
-            if should_yank {
-                self.yank = removed.clone().into();
-            }
-            self.push_history(EditKind::DeleteStr(removed), end, start.offset);
-            return;
-        }
-
-        let mut deleted = vec![self.lines[start.row]
-            .drain(start.offset..)
-            .as_str()
-            .to_string()];
-        deleted.extend(self.lines.drain(start.row + 1..end.row));
-        if start.row + 1 < self.lines.len() {
-            let mut last_line = self.lines.remove(start.row + 1);
-            self.lines[start.row].push_str(&last_line[end.offset..]);
-            last_line.truncate(end.offset);
-            deleted.push(last_line);
-        }
-
-        if should_yank {
-            self.yank = YankText::Chunk(deleted.clone());
-        }
-
-        let edit = if deleted.len() == 1 {
-            EditKind::DeleteStr(deleted.remove(0))
-        } else {
-            EditKind::DeleteChunk(deleted)
-        };
-        self.push_history(edit, end, start.offset);
     }
 
     fn delete_range_v2(&mut self, start: usize, end: usize, should_yank: bool) {
@@ -835,7 +786,7 @@ impl<'a> MergeArea<'a> {
             self.yank = YankText::Piece(deleted.to_string());
         }
 
-        self.push_history_v2(EditKindV2::DeleteStr(deleted.to_string()), start);
+        self.push_history(EditKindV2::DeleteStr(deleted.to_string()), start);
 
         // let edit = if deleted.len() == 1 {
         //     EditKind::DeleteStr(deleted.remove(0))
@@ -864,7 +815,7 @@ impl<'a> MergeArea<'a> {
     /// assert_eq!(textarea.text().as_str(), "🐱\n🐮");
     /// ```
     pub fn delete_str(&mut self, chars: usize) -> bool {
-        if self.delete_selection_v2(false) {
+        if self.delete_selection(false) {
             return true;
         }
         if chars == 0 {
@@ -874,43 +825,6 @@ impl<'a> MergeArea<'a> {
         self.delete_range_v2(self.cursor_v2, self.cursor_v2 + chars, true);
 
         true
-    }
-
-    fn delete_piece(&mut self, col: usize, chars: usize) -> bool {
-        if chars == 0 {
-            return false;
-        }
-
-        #[inline]
-        fn bytes_and_chars(claimed: usize, s: &str) -> (usize, usize) {
-            // Note: `claimed` may be larger than characters in `s` (e.g. usize::MAX)
-            let mut last_col = 0;
-            for (col, (bytes, _)) in s.char_indices().enumerate() {
-                if col == claimed {
-                    return (bytes, claimed);
-                }
-                last_col = col;
-            }
-            (s.len(), last_col + 1)
-        }
-
-        let (row, _) = self.cursor;
-        let line = &mut self.lines[row];
-        if let Some((i, _)) = line.char_indices().nth(col) {
-            let (bytes, chars) = bytes_and_chars(chars, &line[i..]);
-            let removed = line.drain(i..i + bytes).as_str().to_string();
-
-            self.cursor = (row, col);
-            self.push_history(
-                EditKind::DeleteStr(removed.clone()),
-                Pos::new(row, col + chars, i + bytes),
-                i,
-            );
-            self.yank = removed.into();
-            true
-        } else {
-            false
-        }
     }
 
     /// Insert a tab at current cursor position. Note that this method does nothing when the tab length is 0. This
@@ -928,7 +842,7 @@ impl<'a> MergeArea<'a> {
     /// assert_eq!(textarea.text().as_str(), "hi      ");
     /// ```
     pub fn insert_tab(&mut self) -> bool {
-        let modified = self.delete_selection_v2(false);
+        let modified = self.delete_selection(false);
         if self.tab_len == 0 {
             return modified;
         }
@@ -965,7 +879,7 @@ impl<'a> MergeArea<'a> {
     /// assert_eq!(textarea.text().as_str(), "h\ni");
     /// ```
     pub fn insert_newline(&mut self) {
-        self.delete_selection_v2(false);
+        self.delete_selection(false);
 
         let pos = self.cursor_v2;
         // TODO: calculate possition properly
@@ -973,7 +887,7 @@ impl<'a> MergeArea<'a> {
         self.move_cursor(CursorMove::Forward);
 
         // TODO
-        self.push_history_v2(EditKindV2::InsertNewline, pos);
+        self.push_history(EditKindV2::InsertNewline, pos);
         // self.push_history(EditKind::InsertNewline, Pos::new(row, col, offset), 0);
     }
 
@@ -989,7 +903,7 @@ impl<'a> MergeArea<'a> {
     /// assert_eq!(textarea.text().as_str(), "helloworld");
     /// ```
     pub fn delete_newline(&mut self) -> bool {
-        if self.delete_selection_v2(false) {
+        if self.delete_selection(false) {
             return true;
         }
 
@@ -1020,7 +934,7 @@ impl<'a> MergeArea<'a> {
     /// assert_eq!(textarea.text().as_str(), "bc");
     /// ```
     pub fn delete_char(&mut self) -> bool {
-        if self.delete_selection_v2(false) {
+        if self.delete_selection(false) {
             return true;
         }
 
@@ -1032,7 +946,7 @@ impl<'a> MergeArea<'a> {
             self.text.splice(i, c.len_utf8() as isize, "");
             self.cursor_v2 -= 1;
 
-            self.push_history_v2(EditKindV2::DeleteChar(c), i);
+            self.push_history(EditKindV2::DeleteChar(c), i);
 
             true
         } else {
@@ -1052,7 +966,7 @@ impl<'a> MergeArea<'a> {
     /// assert_eq!(textarea.text().as_str(), "ac");
     /// ```
     pub fn delete_next_char(&mut self) -> bool {
-        if self.delete_selection_v2(false) {
+        if self.delete_selection(false) {
             return true;
         }
 
@@ -1080,7 +994,7 @@ impl<'a> MergeArea<'a> {
     /// assert_eq!(textarea.text().as_str(), "ab");
     /// ```
     pub fn delete_line_by_end(&mut self) -> bool {
-        if self.delete_selection_v2(false) {
+        if self.delete_selection(false) {
             return true;
         }
 
@@ -1130,7 +1044,7 @@ impl<'a> MergeArea<'a> {
     /// assert_eq!(textarea.text().as_str(), "cde");
     /// ```
     pub fn delete_line_by_head(&mut self) -> bool {
-        if self.delete_selection_v2(false) {
+        if self.delete_selection(false) {
             return true;
         }
 
@@ -1184,7 +1098,7 @@ impl<'a> MergeArea<'a> {
     /// assert_eq!(textarea.text().as_str(), "aaa ");
     /// ```
     pub fn delete_word(&mut self) -> bool {
-       todo!()
+        todo!()
     }
 
     /// Delete a word next to cursor. Word boundary appears at spaces, punctuations, and others. For example `fn foo(a)`
@@ -1204,7 +1118,7 @@ impl<'a> MergeArea<'a> {
     /// assert_eq!(textarea.text().as_str(), " ccc");
     /// ```
     pub fn delete_next_word(&mut self) -> bool {
-       todo!()
+        todo!()
     }
 
     /// Paste a string previously deleted by [`MergeArea::delete_line_by_head`], [`MergeArea::delete_line_by_end`],
@@ -1221,7 +1135,7 @@ impl<'a> MergeArea<'a> {
     /// assert_eq!(textarea.text().as_str(), " bbb cccaaa");
     /// ```
     pub fn paste(&mut self) -> bool {
-        self.delete_selection_v2(false);
+        self.delete_selection(false);
         match self.yank.clone() {
             YankText::Piece(s) => self.insert_piece(s),
             _ => unreachable!(),
@@ -1304,17 +1218,6 @@ impl<'a> MergeArea<'a> {
         self.selection_start_v2.is_some()
     }
 
-    fn line_offset(&self, row: usize, col: usize) -> usize {
-        let line = self
-            .lines
-            .get(row)
-            .unwrap_or(&self.lines[self.lines.len() - 1]);
-        line.char_indices()
-            .nth(col)
-            .map(|(i, _)| i)
-            .unwrap_or(line.len())
-    }
-
     /// Set the style used for text selection. The default style is light blue.
     /// ```
     /// use ratatui_mergearea::MergeArea;
@@ -1343,21 +1246,8 @@ impl<'a> MergeArea<'a> {
         self.select_style
     }
 
-    fn selection_positions(&self) -> Option<(Pos, Pos)> {
-        let (sr, sc) = self.selection_start?;
-        let (er, ec) = self.cursor;
-        let (so, eo) = (self.line_offset(sr, sc), self.line_offset(er, ec));
-        let s = Pos::new(sr, sc, so);
-        let e = Pos::new(er, ec, eo);
-        match (sr, so).cmp(&(er, eo)) {
-            Ordering::Less => Some((s, e)),
-            Ordering::Equal => None,
-            Ordering::Greater => Some((e, s)),
-        }
-    }
-
     // Get selection positions in chars
-    fn selection_positions_v2(&self) -> Option<(usize, usize)> {
+    fn selection_positions(&self) -> Option<(usize, usize)> {
         let s = self.selection_start_v2?;
         let e = self.cursor_v2;
 
@@ -1368,14 +1258,8 @@ impl<'a> MergeArea<'a> {
         }
     }
 
-    fn take_selection_positions(&mut self) -> Option<(Pos, Pos)> {
-        let range = self.selection_positions();
-        self.cancel_selection();
-        range
-    }
-
     fn take_selection_positions_v2(&mut self) -> Option<(usize, usize)> {
-        let range = self.selection_positions_v2();
+        let range = self.selection_positions();
         self.cancel_selection_v2();
         range
     }
@@ -1425,18 +1309,10 @@ impl<'a> MergeArea<'a> {
     /// assert_eq!(textarea.text().as_str(), "Hello ");
     /// ```
     pub fn cut(&mut self) -> bool {
-        self.delete_selection_v2(true)
+        self.delete_selection(true)
     }
 
     fn delete_selection(&mut self, should_yank: bool) -> bool {
-        if let Some((s, e)) = self.take_selection_positions() {
-            self.delete_range(s, e, should_yank);
-            return true;
-        }
-        false
-    }
-
-    fn delete_selection_v2(&mut self, should_yank: bool) -> bool {
         if let Some((s, e)) = self.take_selection_positions_v2() {
             self.delete_range_v2(s, e, should_yank);
             return true;
@@ -1554,7 +1430,7 @@ impl<'a> MergeArea<'a> {
         //     hl.search(matches, self.search.style);
         // }
 
-        if let Some((start, end)) = self.selection_positions_v2() {
+        if let Some((start, end)) = self.selection_positions() {
             let line_start = self.find_row_start_offset(row);
             let line_end = util::find_line_end(
                 line_start,
