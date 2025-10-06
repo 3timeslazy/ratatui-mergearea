@@ -9,7 +9,7 @@ license = "GPL-3.0"
 repository = "https://github.com/3timeslazy/ratatui-mergearea"
 readme = "README.md"
 categories = ["text-editors", "text-processing", "local-first"]
-keywords = ["tui", "textarea", "editor", "input", "ratatui", "automerge", "crdt"]
+keywords = ["textarea", "editor", "ratatui", "automerge", "crdt"]
 include = ["/src", "/examples", "/tests", "/README.md", "/LICENSE.txt"]
 
 [features]
