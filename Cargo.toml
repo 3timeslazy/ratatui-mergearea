@@ -8,7 +8,7 @@ description = "Automerge text editor widget for ratatui based on tui-textarea"
 license = "GPL-3.0"
 repository = "https://github.com/3timeslazy/ratatui-mergearea"
 readme = "README.md"
-categories = ["text-editors", "text-processing", "local-first"]
+categories = ["text-editors", "text-processing"]
 keywords = ["textarea", "editor", "ratatui", "automerge", "crdt"]
 include = ["/src", "/examples", "/tests", "/README.md", "/LICENSE.txt"]
 
